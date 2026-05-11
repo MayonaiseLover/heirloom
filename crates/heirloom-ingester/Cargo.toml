@@ -1,0 +1,14 @@
+[package]
+name = "heirloom-ingester"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Trait and plugin contract for Heirloom ingesters."
+repository.workspace = true
+
+[dependencies]
+heirloom-core.workspace = true
+anyhow.workspace = true
+async-trait = "0.1"
+chrono.workspace = true
+serde.workspace = true

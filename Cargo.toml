@@ -1,0 +1,59 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/heirloom-core",
+    "crates/heirloom-cli",
+    "crates/heirloom-mcp",
+    "crates/heirloom-ingester",
+    "crates/ingesters/heirloom-fs",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+license = "MIT"
+repository = "https://github.com/heirloom-dev/heirloom"
+homepage = "https://heirloom.dev"
+authors = ["Heirloom Contributors"]
+description = "Local-first, MCP-native personal memory for AI."
+
+[workspace.dependencies]
+heirloom-core = { path = "crates/heirloom-core", version = "0.1.0" }
+heirloom-ingester = { path = "crates/heirloom-ingester", version = "0.1.0" }
+heirloom-fs = { path = "crates/ingesters/heirloom-fs", version = "0.1.0" }
+
+anyhow = "1"
+thiserror = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "io-std", "io-util", "sync", "fs", "signal"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+chrono = { version = "0.4", features = ["serde"] }
+rusqlite = { version = "=0.31.0", features = ["bundled"] }
+clap = { version = "=4.4.18", features = ["derive", "env"] }
+directories = "5"
+walkdir = "2"
+sha2 = "0.10"
+hex = "0.4"
+uuid = { version = "1", features = ["v4", "serde"] }
+toml = "0.8"
+# Pinned to versions compatible with Rust 1.75 — newer releases require edition2024.
+hashbrown = "=0.14.5"
+indexmap = "=2.2.6"
+toml_edit = "=0.22.20"
+winnow = "=0.6.18"
+zerocopy = "=0.7.35"
+half = "=2.4.1"
+litemap = "=0.7.4"
+icu_locid_transform = "=1.5.0"
+icu_normalizer = "=1.5.0"
+icu_properties = "=1.5.1"
+icu_provider = "=1.5.0"
+icu_collections = "=1.5.0"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true

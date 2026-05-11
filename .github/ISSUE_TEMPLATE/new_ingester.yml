@@ -1,0 +1,44 @@
+name: New ingester proposal
+description: Propose a new source for Heirloom to ingest
+labels: [ingester]
+title: "Ingester: <source name>"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ingesters are the highest-leverage contribution to Heirloom. Every new source makes Heirloom dramatically more useful for everyone who uses it.
+
+        Before you start: check the [wanted list](https://github.com/heirloom-dev/heirloom/issues?q=is%3Aissue+label%3Aingester) — someone may already be working on it.
+  - type: input
+    id: source
+    attributes:
+      label: Source name
+      description: Short, lowercase, ASCII (e.g. `slack`, `obsidian`, `kindle`)
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What would this ingest?
+      description: One paragraph. What kind of records, where they come from, what makes them worth remembering.
+    validations:
+      required: true
+  - type: textarea
+    id: access
+    attributes:
+      label: How do you access the data?
+      description: Local file? Export format? API? Auth requirements? OS-specific paths?
+    validations:
+      required: true
+  - type: textarea
+    id: metadata
+    attributes:
+      label: What metadata should each memory carry?
+      description: e.g. for `slack` — channel, author, thread parent, timestamp, permalink
+  - type: checkboxes
+    id: commit
+    attributes:
+      label: Are you planning to build this?
+      options:
+        - label: I'll send a PR.
+        - label: I want this but won't build it myself — looking for a maintainer.

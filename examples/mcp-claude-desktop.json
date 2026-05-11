@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "heirloom": {
+      "command": "heirloom",
+      "args": ["serve"]
+    }
+  }
+}

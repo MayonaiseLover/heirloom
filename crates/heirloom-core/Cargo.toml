@@ -1,0 +1,25 @@
+[package]
+name = "heirloom-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Core storage and search engine for Heirloom."
+repository.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+rusqlite.workspace = true
+sha2.workspace = true
+hex.workspace = true
+uuid.workspace = true
+tracing.workspace = true
+# Force transitive pins (see workspace Cargo.toml)
+hashbrown = { workspace = true }
+indexmap = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"

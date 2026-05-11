@@ -1,0 +1,21 @@
+[package]
+name = "heirloom-fs"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Filesystem ingester for Heirloom — reads markdown and text files."
+repository.workspace = true
+
+[dependencies]
+heirloom-core.workspace = true
+heirloom-ingester.workspace = true
+anyhow.workspace = true
+async-trait = "0.1"
+walkdir.workspace = true
+chrono.workspace = true
+tracing.workspace = true
+tokio = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"
+tokio = { workspace = true }

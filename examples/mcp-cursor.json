@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "heirloom": {
+      "command": "heirloom",
+      "args": ["serve"],
+      "env": {
+        "HEIRLOOM_LOG": "info"
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0b0b12"/>
+      <stop offset="1" stop-color="#1a0b2e"/>
+    </linearGradient>
+    <linearGradient id="thread" x1="0" y1="315" x2="1200" y2="315" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7c3aed"/>
+      <stop offset="1" stop-color="#0ea5e9"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <path
+    d="M 80 460 C 200 460, 240 320, 360 320 S 520 480, 640 320 S 840 200, 960 320 S 1080 460, 1120 460"
+    stroke="url(#thread)" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.65"/>
+  <text x="80" y="200" font-family="ui-sans-serif, -apple-system, system-ui, sans-serif" font-size="92" font-weight="700" fill="#fafafa">Heirloom</text>
+  <text x="80" y="270" font-family="ui-sans-serif, -apple-system, system-ui, sans-serif" font-size="34" font-weight="500" fill="#a1a1aa">Every AI is amnesiac. Heirloom gives them yours.</text>
+  <text x="80" y="565" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="22" fill="#71717a">$ heirloom serve  →  every MCP client now knows you</text>
+</svg>

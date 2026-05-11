@@ -1,0 +1,16 @@
+target/
+**/*.rs.bk
+Cargo.lock.bak
+.env
+.env.*
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+.heirloom/
+.DS_Store
+node_modules/
+dist/
+.idea/
+.vscode/
+*.log
