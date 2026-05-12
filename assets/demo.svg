@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 520" font-family="ui-monospace, 'SF Mono', Menlo, Monaco, monospace">
+  <title>Heirloom — every AI suddenly knows you</title>
+
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="880" y2="520" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0b0b12"/>
+      <stop offset="1" stop-color="#16101f"/>
+    </linearGradient>
+    <linearGradient id="thread" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7c3aed"/>
+      <stop offset="1" stop-color="#0ea5e9"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style>
+      .fade-in { opacity: 0; animation: fadeIn 0.4s ease-out forwards; }
+      @keyframes fadeIn { to { opacity: 1; } }
+      .cursor { animation: blink 1s steps(2,end) infinite; }
+      @keyframes blink { 50% { opacity: 0; } }
+      text { fill: #e4e4e7; font-size: 14px; }
+      .dim { fill: #71717a; }
+      .accent { fill: #c4b5fd; }
+      .ok { fill: #34d399; }
+      .info { fill: #7dd3fc; }
+      .warn { fill: #fbbf24; }
+      .mark { fill: #fdf4ff; font-weight: 700; }
+      .prompt { fill: #34d399; font-weight: 600; }
+      .small { font-size: 12px; }
+    </style>
+  </defs>
+
+  <!-- background -->
+  <rect width="880" height="520" rx="14" fill="url(#bg)"/>
+
+  <!-- window chrome -->
+  <g>
+    <circle cx="22" cy="22" r="6" fill="#ef4444"/>
+    <circle cx="40" cy="22" r="6" fill="#f59e0b"/>
+    <circle cx="58" cy="22" r="6" fill="#10b981"/>
+    <text x="440" y="26" text-anchor="middle" class="dim small">heirloom — ~/notes</text>
+  </g>
+  <line x1="0" y1="46" x2="880" y2="46" stroke="#1f1f2c" stroke-width="1"/>
+
+  <!-- decorative thread -->
+  <path d="M 20 480 C 240 480, 280 360, 440 360 S 700 460, 860 360"
+        stroke="url(#thread)" stroke-width="2.4" fill="none" opacity="0.35" stroke-linecap="round"/>
+  <circle cx="20" cy="480" r="4" fill="#7c3aed"/>
+  <circle cx="860" cy="360" r="4" fill="#0ea5e9" filter="url(#glow)"/>
+
+  <!-- frame 1: heirloom init -->
+  <g class="fade-in" style="animation-delay: 0.2s">
+    <text x="20" y="80"><tspan class="prompt">$</tspan> heirloom init</text>
+  </g>
+  <g class="fade-in" style="animation-delay: 0.9s">
+    <text x="20" y="104"><tspan class="ok">✓</tspan> Heirloom initialized</text>
+    <text x="20" y="124" class="dim">  home:      ~/.heirloom/</text>
+    <text x="20" y="142" class="dim">  database:  ~/.heirloom/heirloom.db</text>
+    <text x="20" y="160" class="dim">  memories:  0</text>
+  </g>
+
+  <!-- frame 2: ingest -->
+  <g class="fade-in" style="animation-delay: 2.0s">
+    <text x="20" y="196"><tspan class="prompt">$</tspan> heirloom ingest fs --path ~/notes</text>
+  </g>
+  <g class="fade-in" style="animation-delay: 2.6s">
+    <text x="20" y="220"><tspan class="ok">✓</tspan> ingest(fs) complete</text>
+    <text x="20" y="238" class="dim">  scanned:  427</text>
+    <text x="20" y="256" class="dim">  inserted: 412</text>
+  </g>
+
+  <!-- frame 3: search -->
+  <g class="fade-in" style="animation-delay: 3.6s">
+    <text x="20" y="292"><tspan class="prompt">$</tspan> heirloom search <tspan class="accent">"the auth bug Sam was reviewing"</tspan></text>
+  </g>
+  <g class="fade-in" style="animation-delay: 4.4s">
+    <text x="20" y="320">1. <tspan class="info">[fs]</tspan> auth.md  <tspan class="dim">(1.402)</tspan></text>
+    <text x="40" y="340">Refactoring the OAuth flow to use <tspan class="mark">PKCE</tspan>. <tspan class="mark">Sam</tspan> is reviewing.</text>
+    <text x="40" y="360">Deadline is Friday before the demo.</text>
+    <text x="40" y="380" class="dim">↳ /Users/me/notes/auth.md</text>
+  </g>
+
+  <!-- frame 4: now from Claude -->
+  <g class="fade-in" style="animation-delay: 5.8s">
+    <line x1="20" y1="408" x2="860" y2="408" stroke="#27272a" stroke-width="1" stroke-dasharray="4 4"/>
+    <text x="20" y="432" class="dim small">…then, from Claude Desktop:</text>
+    <text x="20" y="456" class="accent">You:</text>
+    <text x="60" y="456" class="dim">what was that auth bug Sam was reviewing?</text>
+  </g>
+  <g class="fade-in" style="animation-delay: 6.8s">
+    <text x="20" y="480" class="warn">Claude:</text>
+    <text x="80" y="480">It's the OAuth refactor — <tspan class="mark">Sam's reviewing the PKCE change</tspan>, due Friday before the demo.</text>
+    <text x="80" y="500" class="dim small">[via Heirloom · search_memory]</text>
+  </g>
+
+  <!-- cursor at end -->
+  <rect class="cursor" x="20" y="500" width="9" height="2" fill="#34d399" opacity="0">
+    <animate attributeName="opacity" values="0;0;1" keyTimes="0;0.95;1" dur="8s" fill="freeze"/>
+  </rect>
+</svg>

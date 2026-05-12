@@ -1,0 +1,13 @@
+{
+  "_comment": "Drop into your OpenClaw workspace mcp.json — works with 'openclaw mcp add' too",
+  "mcpServers": {
+    "heirloom": {
+      "command": "heirloom",
+      "args": ["serve"],
+      "transport": "stdio",
+      "env": {
+        "HEIRLOOM_LOG": "info"
+      }
+    }
+  }
+}

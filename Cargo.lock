@@ -554,6 +554,7 @@ dependencies = [
  "heirloom-obsidian",
  "heirloom-slack",
  "heirloom-sync",
+ "heirloom-team",
  "heirloom-vector",
  "heirloom-viewer",
  "heirloom-watch",
@@ -712,6 +713,30 @@ dependencies = [
  "tempfile",
  "thiserror",
  "tracing",
+]
+
+[[package]]
+name = "heirloom-team"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "clap",
+ "heirloom-core",
+ "heirloom-crypto",
+ "hex",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "toml",
+ "tracing",
+ "tracing-subscriber",
+ "urlencoding",
+ "uuid",
 ]
 
 [[package]]

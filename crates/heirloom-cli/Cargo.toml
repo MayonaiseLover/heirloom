@@ -27,6 +27,7 @@ heirloom-crypto.workspace = true
 heirloom-vector.workspace = true
 heirloom-sync.workspace = true
 heirloom-desktop.workspace = true
+heirloom-team.workspace = true
 heirloom-mcp = { path = "../heirloom-mcp", version = "0.1.0" }
 anyhow.workspace = true
 clap.workspace = true

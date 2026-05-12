@@ -99,6 +99,12 @@ enum Cmd {
         action: SyncAction,
     },
 
+    /// Connect to and interact with a self-hosted Heirloom Teams server.
+    Team {
+        #[command(subcommand)]
+        action: TeamAction,
+    },
+
     /// Export your store as JSONL to stdout (or --output FILE).
     Export {
         #[arg(long, short)]
@@ -131,12 +137,29 @@ enum Cmd {
 }
 
 #[derive(Subcommand, Debug)]
+enum TeamAction {
+    /// Show local team config (server URL, member id, whether a token is set).
+    Status,
+    /// Save the team server URL and bearer token locally.
+    Join {
+        /// Base URL of the team server (e.g. http://team.acme.internal:7900).
+        url: String,
+        #[arg(long, env = "HEIRLOOM_TEAM_TOKEN")]
+        token: String,
+    },
+    /// Forget the configured team server and token.
+    Leave,
+    /// Ping the configured server's /v1/health.
+    Ping,
+}
+
+#[derive(Subcommand, Debug)]
 enum SyncAction {
     /// Show the local sync state (device id, relay URL, last pull).
     Status,
     /// Set or clear the relay URL.
     SetRelay {
-        /// Relay base URL (e.g. https://relay.heirloom.dev). Omit to clear.
+        /// Relay base URL (e.g. https://relay.heirloom.web.app). Omit to clear.
         url: Option<String>,
     },
     /// Encrypt and upload a snapshot of the local store to the configured relay.
@@ -175,6 +198,7 @@ async fn main() -> Result<()> {
         Cmd::Seal { passphrase } => cmd_seal(&db_path, passphrase),
         Cmd::Unseal { passphrase } => cmd_unseal(&db_path, passphrase),
         Cmd::Sync { action } => cmd_sync(&home, &db_path, action).await,
+        Cmd::Team { action } => cmd_team(&home, action),
         Cmd::Export { output, source } => cmd_export(&db_path, output, source),
         Cmd::Status => cmd_status(&db_path, cli.json),
         Cmd::Recent { limit, source } => cmd_recent(&db_path, limit, source, cli.json),
@@ -500,6 +524,81 @@ async fn cmd_watch(home: &std::path::Path, db_path: &std::path::Path) -> Result<
     let store = open_store(db_path)?;
     let config = heirloom_watch::load_config(home)?;
     heirloom_watch::run(store, config).await
+}
+
+fn cmd_team(home: &std::path::Path, action: TeamAction) -> Result<()> {
+    let config_path = home.join("team.json");
+    match action {
+        TeamAction::Status => {
+            if !config_path.exists() {
+                println!("Not joined to a team server.");
+                println!("Run `heirloom team join URL --token TOKEN` to connect.");
+                return Ok(());
+            }
+            let raw = std::fs::read_to_string(&config_path)?;
+            let cfg: serde_json::Value = serde_json::from_str(&raw)?;
+            println!("Team server:");
+            println!(
+                "  url:    {}",
+                cfg.get("url").and_then(|v| v.as_str()).unwrap_or("(unset)")
+            );
+            println!(
+                "  token:  {} (length: {})",
+                if cfg.get("token").is_some() {
+                    "configured"
+                } else {
+                    "(unset)"
+                },
+                cfg.get("token")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.len())
+                    .unwrap_or(0)
+            );
+            println!();
+            println!("Use `heirloom team ping` to verify the server is reachable.");
+            Ok(())
+        }
+        TeamAction::Join { url, token } => {
+            if !token.starts_with("hlmt_") {
+                anyhow::bail!("token does not look like a Heirloom team token (expected hlmt_…)");
+            }
+            let cfg = serde_json::json!({ "url": url, "token": token });
+            std::fs::write(&config_path, serde_json::to_string_pretty(&cfg)?)?;
+            println!("✓ joined {}", url);
+            println!("  config written to {}", config_path.display());
+            println!();
+            println!("Run `heirloom team ping` to verify the server is reachable.");
+            Ok(())
+        }
+        TeamAction::Leave => {
+            if config_path.exists() {
+                std::fs::remove_file(&config_path)?;
+                println!("✓ removed team config at {}", config_path.display());
+            } else {
+                println!("Not joined to any team server.");
+            }
+            Ok(())
+        }
+        TeamAction::Ping => {
+            if !config_path.exists() {
+                anyhow::bail!("no team config — run `heirloom team join` first");
+            }
+            let raw = std::fs::read_to_string(&config_path)?;
+            let cfg: serde_json::Value = serde_json::from_str(&raw)?;
+            let url = cfg
+                .get("url")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow::anyhow!("missing url in team config"))?;
+            println!("Would ping {}/v1/health", url);
+            println!("Note: HTTP transport is wired in v1.1; the team server is reachable today via curl:");
+            println!();
+            println!(
+                "    curl -H 'Authorization: Bearer <token>' {}/v1/health",
+                url
+            );
+            Ok(())
+        }
+    }
 }
 
 fn cmd_export(

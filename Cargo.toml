@@ -11,6 +11,7 @@ members = [
     "crates/heirloom-vector",
     "crates/heirloom-sync",
     "crates/heirloom-desktop",
+    "crates/heirloom-team",
     "crates/ingesters/heirloom-fs",
     "crates/ingesters/heirloom-browser",
     "crates/ingesters/heirloom-claude",
@@ -27,7 +28,7 @@ edition = "2021"
 rust-version = "1.75"
 license = "MIT"
 repository = "https://github.com/heirloom-dev/heirloom"
-homepage = "https://heirloom.dev"
+homepage = "https://heirloom.web.app"
 authors = ["Heirloom Contributors"]
 description = "Local-first, MCP-native personal memory for AI."
 
@@ -48,6 +49,7 @@ heirloom-crypto = { path = "crates/heirloom-crypto", version = "0.1.0" }
 heirloom-vector = { path = "crates/heirloom-vector", version = "0.1.0" }
 heirloom-sync = { path = "crates/heirloom-sync", version = "0.1.0" }
 heirloom-desktop = { path = "crates/heirloom-desktop", version = "0.1.0" }
+heirloom-team = { path = "crates/heirloom-team", version = "0.1.0" }
 heirloom-mcp = { path = "crates/heirloom-mcp", version = "0.1.0" }
 
 anyhow = "1"

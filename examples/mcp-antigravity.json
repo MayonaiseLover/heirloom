@@ -1,0 +1,12 @@
+{
+  "_comment": "Settings → Customizations → Open MCP Config (Antigravity v1+)",
+  "mcpServers": {
+    "heirloom": {
+      "command": "heirloom",
+      "args": ["serve"],
+      "env": {
+        "HEIRLOOM_LOG": "info"
+      }
+    }
+  }
+}

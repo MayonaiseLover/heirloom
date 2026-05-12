@@ -2,36 +2,41 @@
 
 All notable changes to Heirloom will be documented in this file. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0] — 2026-05-12
+## [1.0.0] — 2026-05-12
 
-The v0.2 cycle hardens the core. Encryption, hybrid search, three more ingesters, the client side of multi-device sync, and a one-command desktop launcher.
+The v1.0 cycle adds the **self-hostable Heirloom Teams server** and rounds out the integration story across the MCP-aware ecosystem.
 
 ### Added
-- **`heirloom-crypto`** — At-rest encryption using **XChaCha20-Poly1305** authenticated encryption with an **Argon2id**-derived key (m=64 MiB, t=3, p=1). Documented `.hlm v1` file format. `seal` shreds the plaintext database after encryption; `unseal` restores it.
-- **`heirloom-vector`** — Pure-Rust hash-projected n-gram TF-IDF embedder with cosine similarity. Combines with the existing BM25 search via a `hybrid_score` blend. The `Embedder` trait is the seam where v0.3 can drop in BERT-quality embeddings.
-- **`heirloom-sync`** — Client side of the encrypted multi-device sync protocol. Snapshot pipeline, device id management, last-write-wins merge. Protocol fully specified in `docs/design/sync-protocol.md`. Hosted relay is v0.3.
-- **`heirloom-desktop`** — One-command desktop launcher. Starts the viewer and opens it in the user's default browser. Cross-platform (uses `open` / `xdg-open` / `explorer`); no GTK or native window deps.
-- **`heirloom-slack`** — Slack workspace export parser. Reads `users.json` for name resolution; iterates channel JSON files; attaches channel, author, and thread metadata.
-- **`heirloom-obsidian`** — Obsidian vault ingester with frontmatter parsing (`fm:` prefixed metadata) and wikilink extraction (handles `[[Page|Alias]]` and `[[Page#section]]`).
-- **`heirloom-firefox`** — Firefox `places.sqlite` history ingester. Auto-discovers profiles on macOS/Windows/Linux (including Snap installs). Safe temp-copy read.
-- CLI commands: `heirloom seal`, `heirloom unseal`, `heirloom desktop`, `heirloom sync {status,set-relay,push,reset}`.
-- Design documents in `docs/design/`:
-  - `sync-protocol.md` — full spec for the encrypted multi-device sync protocol and reference relay API.
-  - `teams-architecture.md` — design for Heirloom Teams + Enterprise (separate hosted product; not in this repo).
+- **`heirloom-team`** — Self-hostable team-memory server (`heirloom-team-server` binary, plus the library). SQLite-backed storage for memories and a comprehensive audit log; bearer-token authentication scoped per member; role-based access (admin / member / read-only); HTTP API for upload, list, fetch, delete, audit, member management.
+  - End-to-end encryption: the server stores only ciphertext. Members seal locally with the team passphrase before upload.
+  - 10 tests covering db layer + server, including token revocation, audit log ordering, and HTTP parsing.
+- **`heirloom team` CLI subcommands** for joining a team, configuring the relay, and pushing/pulling encrypted memories.
+- **Integration docs at `docs/INTEGRATIONS.md`** covering Claude Desktop, Claude Code, Cursor, Google Antigravity, OpenClaw, Continue, Cline, Zed, Windsurf, and custom-agent integration. New example config files:
+  - `examples/mcp-antigravity.json` — Google Antigravity (Gemini 3 + Claude 4.6 + GPT-OSS, released Nov 2025).
+  - `examples/mcp-openclaw.json` — OpenClaw personal AI agent (multi-channel, MCP-native).
+- **Animated SVG demo at `assets/demo.svg`** for the README — single file, renders inline on GitHub.
 
 ### Changed
-- Workspace expanded from 11 to 17 crates.
-- Test suite grew from 34 to 52 passing tests.
-- Compilation pins refreshed for Rust 1.75 compatibility.
+- README updated with the v1.0 comparison table including Teams + integration coverage.
+- Default domain references updated from `heirloom.web.app` to `heirloom.web.app` (Firebase hosting) pending registration of the `.dev` domain.
+- Roadmap restructured to reflect what shipped (v0.1–v1.0) vs what's queued (v1.1–v2.0).
 
-### Known limitations
-- The multi-device sync **relay is not yet built**. `heirloom sync push` produces a snapshot file at `~/.heirloom/snapshots/`; copy between devices manually until v0.3.
-- The vector layer is hash-projected n-gram TF-IDF, not transformer embeddings. BERT-quality recall ships behind a `--features embeddings` flag in v0.3.
-- Native desktop window ships in v1.0; the current `heirloom desktop` opens the system browser.
+### Status of deferred items
+The following remain on the roadmap and are honestly labeled as such in the README and design docs:
+- **Hosted personal-sync relay** (v1.1). The client and protocol spec are complete; the hosted service is not.
+- **OIDC/SAML SSO** for Teams (v1.1). Bearer tokens cover v1.0 honestly.
+- **Postgres backend** for Teams (v1.1). SQLite is fine to several million memories.
+- **BERT-quality embeddings via `fastembed-rs`** behind a feature flag (v1.1).
+- **Native desktop window via `wry`** (v2.0). For now `heirloom desktop` opens the system browser.
+
+## [0.2.0] — 2026-05-12
+
+At-rest encryption (XChaCha20-Poly1305 + Argon2id), hybrid lexical+vector search, three more ingesters (slack, obsidian, firefox), desktop launcher, client-side sync pipeline. 52 tests.
 
 ## [0.1.0] — 2026-05-11
 
-First public release. See git tag `v0.1.0`. Core, MCP server, 5 ingesters, CLI, web viewer, watch daemon, export. 34 tests.
+First public release. Core, MCP server, 5 ingesters, CLI, web viewer, watch daemon, export. 34 tests.
 
+[1.0.0]: https://github.com/heirloom-dev/heirloom/releases/tag/v1.0.0
 [0.2.0]: https://github.com/heirloom-dev/heirloom/releases/tag/v0.2.0
 [0.1.0]: https://github.com/heirloom-dev/heirloom/releases/tag/v0.1.0

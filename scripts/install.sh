@@ -2,7 +2,7 @@
 # Heirloom installer.
 #
 # Usage:
-#   curl -sSL https://heirloom.dev/install | sh
+#   curl -sSL https://heirloom.web.app/install | sh
 #
 # Behavior:
 #   - Detects OS + arch
