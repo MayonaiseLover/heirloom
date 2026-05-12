@@ -1,0 +1,21 @@
+[package]
+name = "heirloom-browser"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Browser-history ingester for Heirloom (Chrome, Brave, Arc, Edge)."
+repository.workspace = true
+
+[dependencies]
+heirloom-core.workspace = true
+heirloom-ingester.workspace = true
+anyhow.workspace = true
+async-trait = "0.1"
+chrono.workspace = true
+rusqlite.workspace = true
+tracing.workspace = true
+tokio = { workspace = true }
+directories.workspace = true
+
+[dev-dependencies]
+tempfile = "3"

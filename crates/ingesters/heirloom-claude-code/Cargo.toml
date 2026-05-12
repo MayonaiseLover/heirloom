@@ -1,0 +1,23 @@
+[package]
+name = "heirloom-claude-code"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Claude Code session-transcript ingester for Heirloom."
+repository.workspace = true
+
+[dependencies]
+heirloom-core.workspace = true
+heirloom-ingester.workspace = true
+anyhow.workspace = true
+async-trait = "0.1"
+chrono.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+tokio = { workspace = true }
+walkdir.workspace = true
+directories.workspace = true
+
+[dev-dependencies]
+tempfile = "3"

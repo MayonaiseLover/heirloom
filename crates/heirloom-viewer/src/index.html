@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Heirloom</title>
+<style>
+  :root {
+    --bg: #0b0b12;
+    --panel: #141420;
+    --border: #23233a;
+    --fg: #f4f4f6;
+    --muted: #8b8b9b;
+    --accent: #7c3aed;
+    --accent-2: #0ea5e9;
+    --good: #34d399;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font: 15px/1.5 ui-sans-serif, -apple-system, system-ui, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    background: linear-gradient(180deg, rgba(124,58,237,0.08), transparent);
+  }
+  header .brand {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  header .dot {
+    width: 10px;
+    height: 10px;
+    background: var(--good);
+    border-radius: 999px;
+    box-shadow: 0 0 12px var(--good);
+  }
+  header .stats { color: var(--muted); font-size: 13px; margin-left: auto; }
+  main { display: grid; grid-template-columns: 240px 1fr; gap: 0; height: calc(100% - 66px); }
+  aside {
+    border-right: 1px solid var(--border);
+    padding: 20px 16px;
+    overflow-y: auto;
+  }
+  aside h3 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin: 0 0 10px;
+  }
+  .source-list { list-style: none; padding: 0; margin: 0 0 24px; }
+  .source-list li {
+    padding: 6px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--fg);
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+  }
+  .source-list li.active { background: rgba(124,58,237,0.15); color: #fff; }
+  .source-list li:hover:not(.active) { background: rgba(255,255,255,0.04); }
+  .source-list li .count { color: var(--muted); font-variant-numeric: tabular-nums; }
+  section.content { padding: 24px 28px; overflow-y: auto; }
+  .search {
+    width: 100%;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    color: var(--fg);
+    font-size: 16px;
+    outline: none;
+    transition: border-color 120ms;
+  }
+  .search:focus { border-color: var(--accent); }
+  .hint { color: var(--muted); font-size: 13px; margin-top: 8px; }
+  .results { margin-top: 24px; display: flex; flex-direction: column; gap: 12px; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+    transition: border-color 120ms;
+  }
+  .card:hover { border-color: rgba(124,58,237,0.5); }
+  .card .meta {
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    align-items: center;
+  }
+  .badge {
+    background: rgba(14,165,233,0.15);
+    color: #7dd3fc;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    text-transform: lowercase;
+    letter-spacing: 0.02em;
+  }
+  .card .title { font-weight: 600; margin-bottom: 6px; }
+  .card .snippet { color: #d4d4dc; font-size: 14px; white-space: pre-wrap; }
+  .card .snippet mark { background: rgba(124,58,237,0.35); color: #f5d0fe; padding: 1px 3px; border-radius: 3px; }
+  .card .footer {
+    margin-top: 12px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .card .footer button {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 8px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .card .footer button:hover { color: #fda4af; border-color: rgba(244,63,94,0.4); }
+  .empty {
+    text-align: center;
+    color: var(--muted);
+    padding: 60px 20px;
+    font-size: 14px;
+  }
+  kbd {
+    background: #1d1d2b;
+    border: 1px solid var(--border);
+    border-bottom-width: 2px;
+    border-radius: 6px;
+    padding: 2px 6px;
+    font-size: 11px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    color: var(--fg);
+  }
+</style>
+</head>
+<body>
+<header>
+  <span class="dot"></span>
+  <span class="brand">Heirloom</span>
+  <span class="stats" id="stats">loading…</span>
+</header>
+<main>
+  <aside>
+    <h3>Sources</h3>
+    <ul class="source-list" id="sources">
+      <li class="active" data-source="">All</li>
+    </ul>
+    <h3>Tips</h3>
+    <p style="font-size: 13px; color: var(--muted); margin: 8px 0;">
+      Type to search. <kbd>/</kbd> focuses, <kbd>esc</kbd> clears.
+    </p>
+  </aside>
+  <section class="content">
+    <input class="search" id="q" type="text" placeholder="search your memory…" autofocus />
+    <div class="hint" id="hint">Showing your most recent memories. Start typing to search.</div>
+    <div class="results" id="results"></div>
+  </section>
+</main>
+<script>
+  const $ = (id) => document.getElementById(id);
+  let activeSource = "";
+
+  async function loadSources() {
+    const r = await fetch("/api/sources");
+    const data = await r.json();
+    $("stats").textContent = `${data.total.toLocaleString()} memories`;
+    const ul = $("sources");
+    ul.innerHTML = `<li class="${activeSource === "" ? "active" : ""}" data-source="">All <span class="count">${data.total}</span></li>`;
+    for (const s of data.sources) {
+      const li = document.createElement("li");
+      li.dataset.source = s.name;
+      if (activeSource === s.name) li.classList.add("active");
+      li.innerHTML = `${s.name} <span class="count">${s.count}</span>`;
+      ul.appendChild(li);
+    }
+    ul.onclick = (e) => {
+      const li = e.target.closest("li");
+      if (!li) return;
+      activeSource = li.dataset.source;
+      [...ul.children].forEach(x => x.classList.toggle("active", x === li));
+      run();
+    };
+  }
+
+  function fmtDate(s) {
+    try { return new Date(s).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }); }
+    catch { return s; }
+  }
+  function titleOf(m) {
+    return m.metadata?.title || m.metadata?.url || m.kind;
+  }
+  function escapeAttr(s) { return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;"); }
+
+  function renderResults(items, isSearch) {
+    const root = $("results");
+    if (!items.length) {
+      root.innerHTML = `<div class="empty">${isSearch ? "No matches. Try simpler words." : "Nothing here yet — run <code>heirloom ingest fs --path ~/Documents</code>."}</div>`;
+      return;
+    }
+    root.innerHTML = items.map(m => `
+      <div class="card" data-id="${escapeAttr(m.id)}">
+        <div class="meta">
+          <span class="badge">${m.source}</span>
+          <span>${m.kind || ""}</span>
+          <span>·</span>
+          <span>${fmtDate(m.created_at)}</span>
+          ${m.score ? `<span>·</span><span title="relevance">${m.score.toFixed(2)}</span>` : ""}
+        </div>
+        <div class="title">${titleOf(m)}</div>
+        <div class="snippet">${m.snippet || (m.content || "").slice(0, 400)}</div>
+        <div class="footer">
+          <span>${m.metadata?.path || m.metadata?.url || ""}</span>
+          <button data-redact="${escapeAttr(m.id)}">redact</button>
+        </div>
+      </div>
+    `).join("");
+
+    root.querySelectorAll("button[data-redact]").forEach(b => {
+      b.onclick = async () => {
+        if (!confirm("Permanently delete this memory?")) return;
+        const id = b.getAttribute("data-redact");
+        await fetch("/api/memory/" + encodeURIComponent(id), { method: "DELETE" });
+        run();
+        loadSources();
+      };
+    });
+  }
+
+  async function run() {
+    const q = $("q").value.trim();
+    const params = new URLSearchParams();
+    if (activeSource) params.set("source", activeSource);
+    let url, isSearch = false;
+    if (q.length) {
+      params.set("q", q); params.set("k", "30");
+      url = "/api/search?" + params.toString();
+      isSearch = true;
+      $("hint").textContent = `Searching for "${q}"…`;
+    } else {
+      params.set("limit", "30");
+      url = "/api/recent?" + params.toString();
+      $("hint").textContent = "Showing your most recent memories. Start typing to search.";
+    }
+    const r = await fetch(url);
+    const data = await r.json();
+    renderResults(data.results || data.memories || [], isSearch);
+  }
+
+  $("q").addEventListener("input", debounce(run, 150));
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "/" && document.activeElement !== $("q")) { e.preventDefault(); $("q").focus(); }
+    if (e.key === "Escape") { $("q").value = ""; run(); }
+  });
+
+  function debounce(fn, ms) {
+    let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+  }
+
+  loadSources();
+  run();
+</script>
+</body>
+</html>

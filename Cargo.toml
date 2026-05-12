@@ -5,7 +5,13 @@ members = [
     "crates/heirloom-cli",
     "crates/heirloom-mcp",
     "crates/heirloom-ingester",
+    "crates/heirloom-viewer",
+    "crates/heirloom-watch",
     "crates/ingesters/heirloom-fs",
+    "crates/ingesters/heirloom-browser",
+    "crates/ingesters/heirloom-claude",
+    "crates/ingesters/heirloom-chatgpt",
+    "crates/ingesters/heirloom-claude-code",
 ]
 
 [workspace.package]
@@ -22,6 +28,13 @@ description = "Local-first, MCP-native personal memory for AI."
 heirloom-core = { path = "crates/heirloom-core", version = "0.1.0" }
 heirloom-ingester = { path = "crates/heirloom-ingester", version = "0.1.0" }
 heirloom-fs = { path = "crates/ingesters/heirloom-fs", version = "0.1.0" }
+heirloom-browser = { path = "crates/ingesters/heirloom-browser", version = "0.1.0" }
+heirloom-claude = { path = "crates/ingesters/heirloom-claude", version = "0.1.0" }
+heirloom-chatgpt = { path = "crates/ingesters/heirloom-chatgpt", version = "0.1.0" }
+heirloom-claude-code = { path = "crates/ingesters/heirloom-claude-code", version = "0.1.0" }
+heirloom-viewer = { path = "crates/heirloom-viewer", version = "0.1.0" }
+heirloom-watch = { path = "crates/heirloom-watch", version = "0.1.0" }
+heirloom-mcp = { path = "crates/heirloom-mcp", version = "0.1.0" }
 
 anyhow = "1"
 thiserror = "1"

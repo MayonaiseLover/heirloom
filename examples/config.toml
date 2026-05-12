@@ -1,0 +1,27 @@
+# Example Heirloom configuration.
+# Copy to ~/.heirloom/config.toml and edit to taste.
+
+[watch]
+# How often the auto-capture daemon runs each task, in minutes.
+interval_minutes = 60
+
+# One [[watch.tasks]] block per ingester you want to run automatically.
+# Any options below the `ingester` line are passed straight to that ingester.
+
+[[watch.tasks]]
+ingester = "fs"
+path = "/Users/me/Documents/notes"
+
+[[watch.tasks]]
+ingester = "browser"
+# Leaving paths blank means: auto-detect Chrome/Brave/Arc/Edge/Vivaldi.
+# paths = "/path/to/specific/History"
+
+[[watch.tasks]]
+ingester = "claude-code"
+# Reads from ~/.claude/projects/ by default.
+
+# Add more ingesters as you build or install them — e.g.:
+# [[watch.tasks]]
+# ingester = "obsidian"
+# vault = "/Users/me/Obsidian/Main"

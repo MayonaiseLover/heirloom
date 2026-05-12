@@ -55,7 +55,7 @@ enum Cmd {
 
     /// Run an ingester.
     Ingest {
-        /// Ingester name (e.g. "fs").
+        /// Ingester name. One of: fs, browser, claude, chatgpt, claude-code.
         name: String,
         /// Path option, passed to the ingester.
         #[arg(long)]
@@ -64,6 +64,23 @@ enum Cmd {
 
     /// Start the MCP server on stdio.
     Serve,
+
+    /// Start the local web viewer on http://127.0.0.1:7878.
+    Viewer {
+        #[arg(long, default_value = "127.0.0.1:7878")]
+        addr: String,
+    },
+
+    /// Start the auto-capture daemon (reads config.toml).
+    Watch,
+
+    /// Export your store as JSONL to stdout (or --output FILE).
+    Export {
+        #[arg(long, short)]
+        output: Option<PathBuf>,
+        #[arg(long)]
+        source: Option<String>,
+    },
 
     /// Show store statistics.
     Status,
@@ -107,6 +124,9 @@ async fn main() -> Result<()> {
         Cmd::Search { query, k, source } => cmd_search(&db_path, query, k, source, cli.json),
         Cmd::Ingest { name, path } => cmd_ingest(&db_path, name, path, cli.json).await,
         Cmd::Serve => cmd_serve(&db_path).await,
+        Cmd::Viewer { addr } => cmd_viewer(&db_path, addr).await,
+        Cmd::Watch => cmd_watch(&home, &db_path).await,
+        Cmd::Export { output, source } => cmd_export(&db_path, output, source),
         Cmd::Status => cmd_status(&db_path, cli.json),
         Cmd::Recent { limit, source } => cmd_recent(&db_path, limit, source, cli.json),
         Cmd::Redact { id, query } => cmd_redact(&db_path, id, query, cli.json),
@@ -285,7 +305,11 @@ async fn cmd_ingest(
     let store = open_store(db_path)?;
     let mut options: HashMap<String, String> = HashMap::new();
     if let Some(p) = path {
-        options.insert("path".into(), p.display().to_string());
+        // Different ingesters use different keys for the path/root option.
+        let display = p.display().to_string();
+        options.insert("path".into(), display.clone());
+        options.insert("paths".into(), display.clone());
+        options.insert("root".into(), display);
     }
     let ctx = IngestContext {
         store: store.clone(),
@@ -294,7 +318,18 @@ async fn cmd_ingest(
     };
     let report = match name.as_str() {
         "fs" => FsIngester.ingest(&ctx).await?,
-        other => anyhow::bail!("unknown ingester: {} (available: fs)", other),
+        "browser" => heirloom_browser::BrowserIngester.ingest(&ctx).await?,
+        "claude" => heirloom_claude::ClaudeIngester.ingest(&ctx).await?,
+        "chatgpt" => heirloom_chatgpt::ChatGPTIngester.ingest(&ctx).await?,
+        "claude-code" => {
+            heirloom_claude_code::ClaudeCodeIngester
+                .ingest(&ctx)
+                .await?
+        }
+        other => anyhow::bail!(
+            "unknown ingester: {} (available: fs, browser, claude, chatgpt, claude-code)",
+            other
+        ),
     };
     if json {
         println!("{}", serde_json::to_string_pretty(&report)?);
@@ -304,6 +339,47 @@ async fn cmd_ingest(
         println!("  inserted: {}", report.inserted);
         println!("  skipped:  {}", report.skipped);
         println!("  errors:   {}", report.errors);
+    }
+    Ok(())
+}
+
+async fn cmd_viewer(db_path: &std::path::Path, addr: String) -> Result<()> {
+    let store = open_store(db_path)?;
+    let addr: std::net::SocketAddr = addr.parse().context("invalid --addr")?;
+    heirloom_viewer::serve(store, addr).await
+}
+
+async fn cmd_watch(home: &std::path::Path, db_path: &std::path::Path) -> Result<()> {
+    let store = open_store(db_path)?;
+    let config = heirloom_watch::load_config(home)?;
+    heirloom_watch::run(store, config).await
+}
+
+fn cmd_export(
+    db_path: &std::path::Path,
+    output: Option<PathBuf>,
+    source: Option<String>,
+) -> Result<()> {
+    use std::io::Write;
+    let store = open_store(db_path)?;
+    let memories = store.recent(source.as_deref(), i64::MAX as usize)?;
+    let mut writer: Box<dyn Write> = match &output {
+        Some(p) => Box::new(std::fs::File::create(p)?),
+        None => Box::new(std::io::stdout().lock()),
+    };
+    let mut count = 0usize;
+    for m in &memories {
+        let line = serde_json::to_string(m)?;
+        writeln!(writer, "{}", line)?;
+        count += 1;
+    }
+    writer.flush()?;
+    if output.is_some() {
+        eprintln!(
+            "✓ exported {} memor{}",
+            count,
+            if count == 1 { "y" } else { "ies" }
+        );
     }
     Ok(())
 }

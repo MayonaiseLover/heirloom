@@ -579,6 +579,17 @@ mod tests {
     }
 
     #[test]
+    fn recent_accepts_very_large_limit() {
+        // Regression: passing usize::MAX caused SQLite LIMIT overflow.
+        // We expect store.recent to tolerate any limit up to i64::MAX.
+        let store = Store::in_memory().unwrap();
+        store.add(&Memory::new("fs", "note", "alpha")).unwrap();
+        store.add(&Memory::new("fs", "note", "beta")).unwrap();
+        let all = store.recent(None, i64::MAX as usize).unwrap();
+        assert_eq!(all.len(), 2);
+    }
+
+    #[test]
     fn bulk_insert_skips_duplicates() {
         let store = Store::in_memory().unwrap();
         let batch = vec![

@@ -1,0 +1,20 @@
+[package]
+name = "heirloom-watch"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Scheduled auto-capture daemon for Heirloom."
+repository.workspace = true
+
+[dependencies]
+heirloom-core.workspace = true
+heirloom-ingester.workspace = true
+heirloom-fs = { path = "../ingesters/heirloom-fs", version = "0.1.0" }
+heirloom-browser = { path = "../ingesters/heirloom-browser", version = "0.1.0" }
+heirloom-claude-code = { path = "../ingesters/heirloom-claude-code", version = "0.1.0" }
+anyhow.workspace = true
+tokio = { workspace = true, features = ["time", "macros", "rt-multi-thread", "signal", "sync"] }
+tracing.workspace = true
+chrono.workspace = true
+serde.workspace = true
+toml.workspace = true

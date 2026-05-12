@@ -1,0 +1,17 @@
+[package]
+name = "heirloom-viewer"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Local web viewer for Heirloom (zero-dep HTTP server)."
+repository.workspace = true
+
+[dependencies]
+heirloom-core.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio = { workspace = true, features = ["net", "rt-multi-thread", "macros", "io-util", "sync", "signal"] }
+tracing.workspace = true
+chrono.workspace = true
+urlencoding = "2"

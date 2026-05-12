@@ -14,6 +14,12 @@ path = "src/main.rs"
 heirloom-core.workspace = true
 heirloom-ingester.workspace = true
 heirloom-fs.workspace = true
+heirloom-browser.workspace = true
+heirloom-claude.workspace = true
+heirloom-chatgpt.workspace = true
+heirloom-claude-code.workspace = true
+heirloom-viewer.workspace = true
+heirloom-watch.workspace = true
 heirloom-mcp = { path = "../heirloom-mcp", version = "0.1.0" }
 anyhow.workspace = true
 clap.workspace = true

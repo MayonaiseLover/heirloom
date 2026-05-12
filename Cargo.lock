@@ -393,6 +393,72 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "95505c38b4572b2d910cecb0281560f54b440a19336cbbcb27bf6ce6adc6f5a8"
 
 [[package]]
+name = "heirloom-browser"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "directories",
+ "heirloom-core",
+ "heirloom-ingester",
+ "rusqlite",
+ "tempfile",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "heirloom-chatgpt"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "heirloom-core",
+ "heirloom-ingester",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "heirloom-claude"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "heirloom-core",
+ "heirloom-ingester",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "heirloom-claude-code"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "directories",
+ "heirloom-core",
+ "heirloom-ingester",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+ "walkdir",
+]
+
+[[package]]
 name = "heirloom-cli"
 version = "0.1.0"
 dependencies = [
@@ -400,10 +466,16 @@ dependencies = [
  "chrono",
  "clap",
  "directories",
+ "heirloom-browser",
+ "heirloom-chatgpt",
+ "heirloom-claude",
+ "heirloom-claude-code",
  "heirloom-core",
  "heirloom-fs",
  "heirloom-ingester",
  "heirloom-mcp",
+ "heirloom-viewer",
+ "heirloom-watch",
  "serde",
  "serde_json",
  "tokio",
@@ -467,6 +539,37 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "heirloom-viewer"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "heirloom-core",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "urlencoding",
+]
+
+[[package]]
+name = "heirloom-watch"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "heirloom-browser",
+ "heirloom-claude-code",
+ "heirloom-core",
+ "heirloom-fs",
+ "heirloom-ingester",
+ "serde",
+ "tokio",
+ "toml",
  "tracing",
 ]
 
@@ -847,6 +950,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 
 [[package]]
+name = "socket2"
+version = "0.6.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a766e1110788c36f4fa1c2b71b387a7815aa65f88ce0229841826633d93723e"
+dependencies = [
+ "libc",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "strsim"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -916,6 +1029,7 @@ dependencies = [
  "mio",
  "pin-project-lite",
  "signal-hook-registry",
+ "socket2",
  "tokio-macros",
  "windows-sys 0.61.2",
 ]
@@ -1037,6 +1151,12 @@ name = "unicode-ident"
 version = "1.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75"
+
+[[package]]
+name = "urlencoding"
+version = "2.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "daf8dba3b7eb870caf1ddeed7bc9d2a049f3cfdfae7cb521b087cc33ae4c49da"
 
 [[package]]
 name = "utf8parse"
