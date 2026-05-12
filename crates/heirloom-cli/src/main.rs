@@ -55,7 +55,7 @@ enum Cmd {
 
     /// Run an ingester.
     Ingest {
-        /// Ingester name. One of: fs, browser, claude, chatgpt, claude-code.
+        /// Ingester name. One of: fs, browser, claude, chatgpt, claude-code, slack, obsidian, firefox.
         name: String,
         /// Path option, passed to the ingester.
         #[arg(long)]
@@ -71,8 +71,33 @@ enum Cmd {
         addr: String,
     },
 
+    /// Start the viewer and open it in your default browser.
+    Desktop {
+        #[arg(long, default_value = "127.0.0.1:7878")]
+        addr: String,
+    },
+
     /// Start the auto-capture daemon (reads config.toml).
     Watch,
+
+    /// Encrypt the database file with a passphrase, then remove the plaintext.
+    Seal {
+        /// Read passphrase from this env var instead of prompting.
+        #[arg(long, env = "HEIRLOOM_PASSPHRASE")]
+        passphrase: String,
+    },
+
+    /// Decrypt the sealed database back to its plaintext working form.
+    Unseal {
+        #[arg(long, env = "HEIRLOOM_PASSPHRASE")]
+        passphrase: String,
+    },
+
+    /// Encrypted multi-device sync (requires a relay — see docs/design/sync-protocol.md).
+    Sync {
+        #[command(subcommand)]
+        action: SyncAction,
+    },
 
     /// Export your store as JSONL to stdout (or --output FILE).
     Export {
@@ -105,6 +130,26 @@ enum Cmd {
     Doctor,
 }
 
+#[derive(Subcommand, Debug)]
+enum SyncAction {
+    /// Show the local sync state (device id, relay URL, last pull).
+    Status,
+    /// Set or clear the relay URL.
+    SetRelay {
+        /// Relay base URL (e.g. https://relay.heirloom.dev). Omit to clear.
+        url: Option<String>,
+    },
+    /// Encrypt and upload a snapshot of the local store to the configured relay.
+    /// Not yet wired to a network transport in v0.1 — produces a local
+    /// snapshot file at `~/.heirloom/snapshots/`.
+    Push {
+        #[arg(long, env = "HEIRLOOM_PASSPHRASE")]
+        passphrase: String,
+    },
+    /// Generate a fresh device id (rotates this device's identity).
+    Reset,
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
@@ -125,7 +170,11 @@ async fn main() -> Result<()> {
         Cmd::Ingest { name, path } => cmd_ingest(&db_path, name, path, cli.json).await,
         Cmd::Serve => cmd_serve(&db_path).await,
         Cmd::Viewer { addr } => cmd_viewer(&db_path, addr).await,
+        Cmd::Desktop { addr } => cmd_desktop(&db_path, addr).await,
         Cmd::Watch => cmd_watch(&home, &db_path).await,
+        Cmd::Seal { passphrase } => cmd_seal(&db_path, passphrase),
+        Cmd::Unseal { passphrase } => cmd_unseal(&db_path, passphrase),
+        Cmd::Sync { action } => cmd_sync(&home, &db_path, action).await,
         Cmd::Export { output, source } => cmd_export(&db_path, output, source),
         Cmd::Status => cmd_status(&db_path, cli.json),
         Cmd::Recent { limit, source } => cmd_recent(&db_path, limit, source, cli.json),
@@ -326,8 +375,11 @@ async fn cmd_ingest(
                 .ingest(&ctx)
                 .await?
         }
+        "slack" => heirloom_slack::SlackIngester.ingest(&ctx).await?,
+        "obsidian" => heirloom_obsidian::ObsidianIngester.ingest(&ctx).await?,
+        "firefox" => heirloom_firefox::FirefoxIngester.ingest(&ctx).await?,
         other => anyhow::bail!(
-            "unknown ingester: {} (available: fs, browser, claude, chatgpt, claude-code)",
+            "unknown ingester: {} (available: fs, browser, claude, chatgpt, claude-code, slack, obsidian, firefox)",
             other
         ),
     };
@@ -347,6 +399,101 @@ async fn cmd_viewer(db_path: &std::path::Path, addr: String) -> Result<()> {
     let store = open_store(db_path)?;
     let addr: std::net::SocketAddr = addr.parse().context("invalid --addr")?;
     heirloom_viewer::serve(store, addr).await
+}
+
+async fn cmd_desktop(db_path: &std::path::Path, addr: String) -> Result<()> {
+    let store = open_store(db_path)?;
+    let addr: std::net::SocketAddr = addr.parse().context("invalid --addr")?;
+    heirloom_desktop::launch(store, addr).await
+}
+
+fn cmd_seal(db_path: &std::path::Path, passphrase: String) -> Result<()> {
+    if !db_path.exists() {
+        anyhow::bail!("nothing to seal: {} does not exist", db_path.display());
+    }
+    let sealed = heirloom_crypto::seal(db_path, &passphrase, false)?;
+    println!("✓ sealed: {}", sealed.display());
+    println!("  plaintext database removed.");
+    println!("  to use again, run: heirloom unseal");
+    Ok(())
+}
+
+fn cmd_unseal(db_path: &std::path::Path, passphrase: String) -> Result<()> {
+    heirloom_crypto::unseal(db_path, &passphrase)?;
+    println!("✓ unsealed: {}", db_path.display());
+    println!("  use as normal; remember to `heirloom seal` again when done.");
+    Ok(())
+}
+
+async fn cmd_sync(
+    home: &std::path::Path,
+    db_path: &std::path::Path,
+    action: SyncAction,
+) -> Result<()> {
+    let mut state = heirloom_sync::SyncState::load(home)?;
+    match action {
+        SyncAction::Status => {
+            println!("device id:    {}", state.device_id.0);
+            match &state.relay_url {
+                Some(u) => println!("relay url:    {}", u),
+                None => {
+                    println!("relay url:    (not configured — run `heirloom sync set-relay URL`)")
+                }
+            }
+            match state.last_pulled {
+                Some(t) => println!("last pulled:  {}", t.format("%Y-%m-%d %H:%M:%S UTC")),
+                None => println!("last pulled:  never"),
+            }
+            println!("snapshots:    {} known", state.known_snapshots.len());
+            println!();
+            println!("Note: v0.1 ships the local snapshot pipeline. Network transport against");
+            println!("a hosted relay lands in v0.3 — see docs/design/sync-protocol.md.");
+            Ok(())
+        }
+        SyncAction::SetRelay { url } => {
+            state.relay_url = url.clone();
+            state.save(home)?;
+            match url {
+                Some(u) => println!("✓ relay set to {}", u),
+                None => println!("✓ relay cleared"),
+            }
+            Ok(())
+        }
+        SyncAction::Reset => {
+            state.device_id = heirloom_sync::DeviceId::new();
+            state.save(home)?;
+            println!("✓ new device id: {}", state.device_id.0);
+            Ok(())
+        }
+        SyncAction::Push { passphrase } => {
+            if !db_path.exists() {
+                anyhow::bail!("no database to push at {}", db_path.display());
+            }
+            let device_id = state.device_id.clone();
+            let (header, ciphertext) =
+                heirloom_sync::prepare_snapshot(db_path, &passphrase, device_id)?;
+            let snapshots_dir = home.join("snapshots");
+            std::fs::create_dir_all(&snapshots_dir)?;
+            let out = snapshots_dir.join(format!("{}.hlm", header.snapshot_id));
+            std::fs::write(&out, ciphertext)?;
+            std::fs::write(
+                snapshots_dir.join(format!("{}.json", header.snapshot_id)),
+                serde_json::to_string_pretty(&header)?,
+            )?;
+            state.known_snapshots.push(header.snapshot_id.clone());
+            state.save(home)?;
+            println!("✓ snapshot prepared");
+            println!("  id:    {}", header.snapshot_id);
+            println!("  size:  {} bytes", header.size_bytes);
+            println!("  file:  {}", out.display());
+            if state.relay_url.is_some() {
+                println!();
+                println!("Note: relay upload not yet implemented in v0.1 — the snapshot is");
+                println!("stored locally. Copy to another device manually for now.");
+            }
+            Ok(())
+        }
+    }
 }
 
 async fn cmd_watch(home: &std::path::Path, db_path: &std::path::Path) -> Result<()> {

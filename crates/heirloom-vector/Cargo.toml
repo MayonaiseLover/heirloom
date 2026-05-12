@@ -1,0 +1,18 @@
+[package]
+name = "heirloom-vector"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Vector embeddings and hybrid scoring for Heirloom."
+repository.workspace = true
+
+[dependencies]
+heirloom-core.workspace = true
+anyhow.workspace = true
+rusqlite.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tempfile = "3"

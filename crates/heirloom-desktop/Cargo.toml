@@ -1,0 +1,14 @@
+[package]
+name = "heirloom-desktop"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Desktop launcher for Heirloom — runs the viewer and opens it in your browser."
+repository.workspace = true
+
+[dependencies]
+heirloom-core.workspace = true
+heirloom-viewer.workspace = true
+anyhow.workspace = true
+tokio = { workspace = true }
+tracing.workspace = true

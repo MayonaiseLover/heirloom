@@ -18,8 +18,15 @@ heirloom-browser.workspace = true
 heirloom-claude.workspace = true
 heirloom-chatgpt.workspace = true
 heirloom-claude-code.workspace = true
+heirloom-slack.workspace = true
+heirloom-obsidian.workspace = true
+heirloom-firefox.workspace = true
 heirloom-viewer.workspace = true
 heirloom-watch.workspace = true
+heirloom-crypto.workspace = true
+heirloom-vector.workspace = true
+heirloom-sync.workspace = true
+heirloom-desktop.workspace = true
 heirloom-mcp = { path = "../heirloom-mcp", version = "0.1.0" }
 anyhow.workspace = true
 clap.workspace = true

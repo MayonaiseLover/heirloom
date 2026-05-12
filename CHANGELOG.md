@@ -1,31 +1,37 @@
 # Changelog
 
-All notable changes to Heirloom will be documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+All notable changes to Heirloom will be documented in this file. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.2.0] — 2026-05-12
+
+The v0.2 cycle hardens the core. Encryption, hybrid search, three more ingesters, the client side of multi-device sync, and a one-command desktop launcher.
+
+### Added
+- **`heirloom-crypto`** — At-rest encryption using **XChaCha20-Poly1305** authenticated encryption with an **Argon2id**-derived key (m=64 MiB, t=3, p=1). Documented `.hlm v1` file format. `seal` shreds the plaintext database after encryption; `unseal` restores it.
+- **`heirloom-vector`** — Pure-Rust hash-projected n-gram TF-IDF embedder with cosine similarity. Combines with the existing BM25 search via a `hybrid_score` blend. The `Embedder` trait is the seam where v0.3 can drop in BERT-quality embeddings.
+- **`heirloom-sync`** — Client side of the encrypted multi-device sync protocol. Snapshot pipeline, device id management, last-write-wins merge. Protocol fully specified in `docs/design/sync-protocol.md`. Hosted relay is v0.3.
+- **`heirloom-desktop`** — One-command desktop launcher. Starts the viewer and opens it in the user's default browser. Cross-platform (uses `open` / `xdg-open` / `explorer`); no GTK or native window deps.
+- **`heirloom-slack`** — Slack workspace export parser. Reads `users.json` for name resolution; iterates channel JSON files; attaches channel, author, and thread metadata.
+- **`heirloom-obsidian`** — Obsidian vault ingester with frontmatter parsing (`fm:` prefixed metadata) and wikilink extraction (handles `[[Page|Alias]]` and `[[Page#section]]`).
+- **`heirloom-firefox`** — Firefox `places.sqlite` history ingester. Auto-discovers profiles on macOS/Windows/Linux (including Snap installs). Safe temp-copy read.
+- CLI commands: `heirloom seal`, `heirloom unseal`, `heirloom desktop`, `heirloom sync {status,set-relay,push,reset}`.
+- Design documents in `docs/design/`:
+  - `sync-protocol.md` — full spec for the encrypted multi-device sync protocol and reference relay API.
+  - `teams-architecture.md` — design for Heirloom Teams + Enterprise (separate hosted product; not in this repo).
+
+### Changed
+- Workspace expanded from 11 to 17 crates.
+- Test suite grew from 34 to 52 passing tests.
+- Compilation pins refreshed for Rust 1.75 compatibility.
+
+### Known limitations
+- The multi-device sync **relay is not yet built**. `heirloom sync push` produces a snapshot file at `~/.heirloom/snapshots/`; copy between devices manually until v0.3.
+- The vector layer is hash-projected n-gram TF-IDF, not transformer embeddings. BERT-quality recall ships behind a `--features embeddings` flag in v0.3.
+- Native desktop window ships in v1.0; the current `heirloom desktop` opens the system browser.
 
 ## [0.1.0] — 2026-05-11
 
-The first public release. A working local memory layer that AI tools can query over MCP — with five ingesters, a web viewer, and an auto-capture daemon out of the box.
+First public release. See git tag `v0.1.0`. Core, MCP server, 5 ingesters, CLI, web viewer, watch daemon, export. 34 tests.
 
-### Added
-- **`heirloom-core`** — SQLite + FTS5 storage with BM25-ranked full-text search, snippet highlighting, idempotent content-hash deduplication, source and time-range filters, hard redaction, and stopword-aware natural-language query handling.
-- **`heirloom-ingester`** — `Ingester` trait and `IngestContext` for building plugins.
-- **`heirloom-fs`** — Filesystem ingester for `.md`, `.markdown`, `.txt`, `.org`, and `.rst` files. Skips hidden files, dependency directories, and files larger than 5 MiB.
-- **`heirloom-browser`** — Chromium-family history ingester (Chrome, Brave, Arc, Edge, Vivaldi). Reads from a temp copy of `History` so the browser doesn't have to be closed. Pulls URL, title, visit count, and last-visit timestamp — no cookies, no form data, no passwords.
-- **`heirloom-claude`** — Parser for Anthropic Claude `conversations.json` exports. Handles both the legacy `text` field and the newer structured `content` array.
-- **`heirloom-chatgpt`** — Parser for OpenAI ChatGPT `conversations.json` exports. Walks the message tree from `current_node` for stable chronological ordering. Filters out `system` and `tool` roles.
-- **`heirloom-claude-code`** — Reads Claude Code session transcripts from `~/.claude/projects/`. Handles both JSONL and JSON-array session files. Attaches `session_id`, `cwd`, and `project` to each turn. Direct local equivalent of npm-based "claude-mem" tools.
-- **`heirloom-mcp`** — Minimal Model Context Protocol server over stdio JSON-RPC. Exposes `search_memory`, `recent_memories`, `list_sources`, and `get_memory`.
-- **`heirloom-viewer`** — Self-contained local web viewer at `http://127.0.0.1:7878`. Embedded HTML, dark theme, keyboard shortcuts, one-click redact. No framework dependency.
-- **`heirloom-watch`** — Auto-capture daemon. Reads `~/.heirloom/config.toml` and runs configured ingesters on a fixed schedule.
-- **`heirloom` CLI** with subcommands `init`, `add`, `ingest`, `search`, `recent`, `serve`, `viewer`, `watch`, `export`, `redact`, `status`, and `doctor`. All commands support `--json` for piping.
-- Drop-in MCP configuration snippets for Claude Desktop and Cursor in `examples/`.
-- Example `config.toml` documenting the auto-capture format.
-- 33 unit and integration tests across the workspace.
-
-### Known limitations
-- No at-rest encryption (planned for v0.2).
-- No vector embeddings (planned for v0.2). Full-text search via FTS5 handles English stemming but not semantic similarity.
-- Firefox history (`places.sqlite`) is not yet supported.
-- Tested on Linux. macOS and Windows are expected to work but lack CI coverage in this release.
-
+[0.2.0]: https://github.com/heirloom-dev/heirloom/releases/tag/v0.2.0
 [0.1.0]: https://github.com/heirloom-dev/heirloom/releases/tag/v0.1.0

@@ -13,7 +13,6 @@ use heirloom_ingester::{IngestContext, IngestReport, Ingester};
 use serde::Deserialize;
 use std::path::PathBuf;
 
-
 pub struct ClaudeIngester;
 
 #[derive(Debug, Deserialize)]

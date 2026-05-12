@@ -7,11 +7,18 @@ members = [
     "crates/heirloom-ingester",
     "crates/heirloom-viewer",
     "crates/heirloom-watch",
+    "crates/heirloom-crypto",
+    "crates/heirloom-vector",
+    "crates/heirloom-sync",
+    "crates/heirloom-desktop",
     "crates/ingesters/heirloom-fs",
     "crates/ingesters/heirloom-browser",
     "crates/ingesters/heirloom-claude",
     "crates/ingesters/heirloom-chatgpt",
     "crates/ingesters/heirloom-claude-code",
+    "crates/ingesters/heirloom-slack",
+    "crates/ingesters/heirloom-obsidian",
+    "crates/ingesters/heirloom-firefox",
 ]
 
 [workspace.package]
@@ -32,8 +39,15 @@ heirloom-browser = { path = "crates/ingesters/heirloom-browser", version = "0.1.
 heirloom-claude = { path = "crates/ingesters/heirloom-claude", version = "0.1.0" }
 heirloom-chatgpt = { path = "crates/ingesters/heirloom-chatgpt", version = "0.1.0" }
 heirloom-claude-code = { path = "crates/ingesters/heirloom-claude-code", version = "0.1.0" }
+heirloom-slack = { path = "crates/ingesters/heirloom-slack", version = "0.1.0" }
+heirloom-obsidian = { path = "crates/ingesters/heirloom-obsidian", version = "0.1.0" }
+heirloom-firefox = { path = "crates/ingesters/heirloom-firefox", version = "0.1.0" }
 heirloom-viewer = { path = "crates/heirloom-viewer", version = "0.1.0" }
 heirloom-watch = { path = "crates/heirloom-watch", version = "0.1.0" }
+heirloom-crypto = { path = "crates/heirloom-crypto", version = "0.1.0" }
+heirloom-vector = { path = "crates/heirloom-vector", version = "0.1.0" }
+heirloom-sync = { path = "crates/heirloom-sync", version = "0.1.0" }
+heirloom-desktop = { path = "crates/heirloom-desktop", version = "0.1.0" }
 heirloom-mcp = { path = "crates/heirloom-mcp", version = "0.1.0" }
 
 anyhow = "1"
@@ -65,6 +79,12 @@ icu_normalizer = "=1.5.0"
 icu_properties = "=1.5.1"
 icu_provider = "=1.5.0"
 icu_collections = "=1.5.0"
+rustc-hash = "=1.1.0"
+tinystr = "=0.7.6"
+zerovec = "=0.10.4"
+yoke = "=0.7.5"
+zerofrom = "=0.1.5"
+base64ct = "=1.6.0"
 
 [profile.release]
 lto = "thin"

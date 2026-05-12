@@ -1,0 +1,20 @@
+[package]
+name = "heirloom-obsidian"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Obsidian-vault ingester for Heirloom."
+repository.workspace = true
+
+[dependencies]
+heirloom-core.workspace = true
+heirloom-ingester.workspace = true
+anyhow.workspace = true
+async-trait = "0.1"
+chrono.workspace = true
+walkdir.workspace = true
+tracing.workspace = true
+tokio = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"
