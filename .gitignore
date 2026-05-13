@@ -14,3 +14,14 @@ dist/
 .idea/
 .vscode/
 *.log
+
+# Firebase deploy cache — local-only, regenerated on every deploy
+.firebase/
+
+# Built archives — these are release artifacts, not source
+*.tar.gz
+*.zip
+
+# Backup files
+*~
+*.bak
