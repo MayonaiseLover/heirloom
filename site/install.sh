@@ -1,11 +1,26 @@
 #!/usr/bin/env sh
-# Heirloom installer — https://heirloom.web.app/install
-# Usage: curl -sSL https://heirloom.web.app/install | sh
+# Heirloom installer — https://heirlooom.web.app/install
+# Usage:
+#   curl -sSL https://heirlooom.web.app/install | sh
+#
+# Tries in order:
+#   1. Pre-built binary from latest GitHub release
+#   2. cargo install --git (requires Rust toolchain)
+#   3. clear instructions to clone + build manually
 set -e
 
 REPO="MayonaiseLover/heirloom"
 BIN="heirloom"
 INSTALL_DIR="${HEIRLOOM_INSTALL_DIR:-/usr/local/bin}"
+
+# ──────────────────────────────────────────────────────
+have() { command -v "$1" >/dev/null 2>&1; }
+
+fetch() {
+  if have curl; then curl -sSL "$1"
+  elif have wget; then wget -qO- "$1"
+  else echo ""; fi
+}
 
 # ──────────────────────────────────────────────────────
 # detect OS + arch
@@ -17,122 +32,119 @@ case "$OS" in
   linux)  TARGET_OS="linux" ;;
   darwin) TARGET_OS="macos" ;;
   *)
-    echo "error: unsupported OS: $OS"
-    echo "Download manually from: https://github.com/$REPO/releases/latest"
-    exit 1
-    ;;
+    echo "✗ unsupported OS: $OS"
+    echo "  Build from source: https://github.com/$REPO#building-from-source"
+    exit 1 ;;
 esac
 
 case "$ARCH" in
-  x86_64 | amd64) TARGET_ARCH="x86_64" ;;
+  x86_64 | amd64)  TARGET_ARCH="x86_64" ;;
   aarch64 | arm64) TARGET_ARCH="aarch64" ;;
   *)
-    echo "error: unsupported architecture: $ARCH"
-    echo "Download manually from: https://github.com/$REPO/releases/latest"
-    exit 1
-    ;;
+    echo "✗ unsupported architecture: $ARCH"
+    echo "  Build from source: https://github.com/$REPO#building-from-source"
+    exit 1 ;;
 esac
 
 # ──────────────────────────────────────────────────────
-# resolve latest version tag from GitHub API
+# attempt 1: latest GitHub release
 # ──────────────────────────────────────────────────────
-echo "→ fetching latest Heirloom release..."
-if command -v curl >/dev/null 2>&1; then
-  LATEST=$(curl -sSL "https://api.github.com/repos/$REPO/releases/latest" \
-    | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')
-elif command -v wget >/dev/null 2>&1; then
-  LATEST=$(wget -qO- "https://api.github.com/repos/$REPO/releases/latest" \
-    | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')
-else
-  echo "error: need curl or wget"
-  exit 1
-fi
+echo "→ looking for a pre-built release for $TARGET_OS/$TARGET_ARCH ..."
+RELEASE_JSON=$(fetch "https://api.github.com/repos/$REPO/releases/latest" || true)
+LATEST=$(echo "$RELEASE_JSON" | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')
+HAS_ASSETS=$(echo "$RELEASE_JSON" | grep -c '"browser_download_url"' || true)
 
-if [ -z "$LATEST" ]; then
-  echo "error: could not determine latest version"
-  echo "Download manually from: https://github.com/$REPO/releases/latest"
-  exit 1
-fi
-
-echo "→ latest version: $LATEST"
-
-# ──────────────────────────────────────────────────────
-# assemble download URL
-# cargo-dist produces:  heirloom-v1.0.1-aarch64-apple-darwin.tar.gz
-# ──────────────────────────────────────────────────────
 case "$TARGET_OS" in
   macos) TRIPLE="${TARGET_ARCH}-apple-darwin" ;;
   linux) TRIPLE="${TARGET_ARCH}-unknown-linux-musl" ;;
 esac
 
-ARCHIVE="${BIN}-${LATEST}-${TRIPLE}.tar.gz"
-URL="https://github.com/$REPO/releases/download/$LATEST/$ARCHIVE"
+if [ -n "$LATEST" ] && [ "$HAS_ASSETS" -gt 0 ]; then
+  ARCHIVE="${BIN}-${LATEST}-${TRIPLE}.tar.gz"
+  URL="https://github.com/$REPO/releases/download/$LATEST/$ARCHIVE"
 
-# ──────────────────────────────────────────────────────
-# download and install
-# ──────────────────────────────────────────────────────
-TMP=$(mktemp -d)
-trap "rm -rf $TMP" EXIT
+  echo "→ trying $URL ..."
+  TMP=$(mktemp -d)
+  trap "rm -rf $TMP" EXIT
 
-echo "→ downloading $ARCHIVE ..."
-if command -v curl >/dev/null 2>&1; then
-  curl -sSL "$URL" -o "$TMP/$ARCHIVE"
-else
-  wget -qO "$TMP/$ARCHIVE" "$URL"
-fi
-
-echo "→ extracting..."
-tar -xzf "$TMP/$ARCHIVE" -C "$TMP"
-
-# find the binary (may be nested in a dir)
-BIN_PATH=$(find "$TMP" -type f -name "$BIN" | head -1)
-if [ -z "$BIN_PATH" ]; then
-  echo "error: binary not found in archive"
-  exit 1
-fi
-chmod +x "$BIN_PATH"
-
-# ──────────────────────────────────────────────────────
-# place binary
-# ──────────────────────────────────────────────────────
-if [ -w "$INSTALL_DIR" ]; then
-  mv "$BIN_PATH" "$INSTALL_DIR/$BIN"
-else
-  echo "→ need sudo to write to $INSTALL_DIR..."
-  sudo mv "$BIN_PATH" "$INSTALL_DIR/$BIN"
-fi
-
-# ──────────────────────────────────────────────────────
-# also install heirloom-team-server if present in archive
-# ──────────────────────────────────────────────────────
-TEAM_BIN=$(find "$TMP" -type f -name "heirloom-team-server" | head -1)
-if [ -n "$TEAM_BIN" ]; then
-  chmod +x "$TEAM_BIN"
-  if [ -w "$INSTALL_DIR" ]; then
-    mv "$TEAM_BIN" "$INSTALL_DIR/heirloom-team-server"
+  if have curl; then
+    HTTP_CODE=$(curl -sSL -w "%{http_code}" -o "$TMP/$ARCHIVE" "$URL" || echo "000")
   else
-    sudo mv "$TEAM_BIN" "$INSTALL_DIR/heirloom-team-server"
+    wget -qO "$TMP/$ARCHIVE" "$URL" && HTTP_CODE="200" || HTTP_CODE="404"
   fi
-  echo "→ installed heirloom-team-server → $INSTALL_DIR/heirloom-team-server"
+
+  if [ "$HTTP_CODE" = "200" ] && [ -s "$TMP/$ARCHIVE" ]; then
+    echo "→ extracting ..."
+    tar -xzf "$TMP/$ARCHIVE" -C "$TMP"
+    BIN_PATH=$(find "$TMP" -type f -name "$BIN" | head -1)
+    if [ -n "$BIN_PATH" ]; then
+      chmod +x "$BIN_PATH"
+      if [ -w "$INSTALL_DIR" ]; then
+        mv "$BIN_PATH" "$INSTALL_DIR/$BIN"
+      else
+        echo "→ need sudo to write to $INSTALL_DIR ..."
+        sudo mv "$BIN_PATH" "$INSTALL_DIR/$BIN"
+      fi
+      TEAM_BIN=$(find "$TMP" -type f -name "heirloom-team-server" | head -1)
+      if [ -n "$TEAM_BIN" ]; then
+        chmod +x "$TEAM_BIN"
+        if [ -w "$INSTALL_DIR" ]; then mv "$TEAM_BIN" "$INSTALL_DIR/heirloom-team-server"
+        else sudo mv "$TEAM_BIN" "$INSTALL_DIR/heirloom-team-server"; fi
+      fi
+      echo "✓ installed $($INSTALL_DIR/$BIN --version 2>/dev/null || echo "$BIN $LATEST")"
+      SUCCESS=1
+    fi
+  fi
 fi
 
 # ──────────────────────────────────────────────────────
-# verify + greet
+# attempt 2: cargo install --git (build from source)
 # ──────────────────────────────────────────────────────
-if ! command -v "$BIN" >/dev/null 2>&1; then
+if [ -z "${SUCCESS:-}" ]; then
   echo ""
-  echo "  installed → $INSTALL_DIR/$BIN"
-  echo "  (add $INSTALL_DIR to your PATH if not already there)"
-else
-  echo "→ installed $($BIN --version)"
+  echo "  No pre-built binary available yet for $TRIPLE."
+  echo ""
+  if have cargo; then
+    echo "→ found Rust toolchain, building from source via cargo ..."
+    echo "  (this takes 2-3 minutes the first time)"
+    echo ""
+    cargo install --git "https://github.com/$REPO" --bin heirloom heirloom-cli
+    cargo install --git "https://github.com/$REPO" --bin heirloom-team-server heirloom-team || true
+    SUCCESS=1
+  else
+    cat <<EOF
+  Rust toolchain not found. You have two options:
+
+  Option 1 — Install Rust, then re-run this script:
+      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+      source "\$HOME/.cargo/env"
+      curl -sSL https://heirlooom.web.app/install | sh
+
+  Option 2 — Clone and build manually:
+      git clone https://github.com/$REPO
+      cd heirloom
+      cargo install --path crates/heirloom-cli
+      cargo install --path crates/heirloom-team
+
+EOF
+    exit 1
+  fi
 fi
 
-echo ""
-echo "  Get started:"
-echo "    heirloom init"
-echo "    heirloom ingest fs --path ~/Documents/notes"
-echo "    heirloom search \"anything you remember\""
-echo ""
-echo "  Docs: https://github.com/$REPO#readme"
-echo "  MCP:  heirloom serve"
-echo ""
+# ──────────────────────────────────────────────────────
+# greet
+# ──────────────────────────────────────────────────────
+cat <<EOF
+
+  Get started:
+    heirloom init
+    heirloom ingest fs --path ~/Documents/notes
+    heirloom search "anything you remember"
+
+  Connect to Claude / Cursor / Antigravity:
+    https://github.com/$REPO/blob/main/docs/INTEGRATIONS.md
+
+  Run as MCP server:
+    heirloom serve
+
+EOF

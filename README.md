@@ -49,7 +49,7 @@ Your memory is a file you own. Not a SaaS account.
 ## Quickstart
 
 ```bash
-curl -sSL https://heirloom.web.app/install | sh
+curl -sSL https://heirlooom.web.app/install | sh
 heirloom init
 
 # Ingest something
@@ -64,6 +64,20 @@ heirloom search "what was that auth bug"
 # Open the dashboard
 heirloom desktop
 ```
+
+### Building from source
+
+If no pre-built release is available for your platform yet, the installer falls back to building from source automatically. You can also do it manually:
+
+```bash
+# Requires Rust 1.83+ (https://rustup.rs)
+git clone https://github.com/MayonaiseLover/heirloom
+cd heirloom
+cargo install --path crates/heirloom-cli      # installs the `heirloom` binary
+cargo install --path crates/heirloom-team     # installs `heirloom-team-server` (optional)
+```
+
+The first build takes a few minutes (mostly compiling SQLite). Subsequent builds use the cargo cache and finish in seconds.
 
 Then plug it into the AI client of your choice — same shape for all of them, full [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md):
 
@@ -265,7 +279,7 @@ Then `heirloom watch` and forget.
 - **Viewer binds to loopback only.** No LAN exposure.
 - **Team server is yours.** When you self-host `heirloom-team-server`, the bytes live on your hardware, with full audit logs.
 
-If you find a security issue, please email `security@heirloom.web.app` rather than filing a public issue.
+If you find a security issue, please email `security@heirlooom.web.app` rather than filing a public issue.
 
 ## Roadmap
 

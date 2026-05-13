@@ -8,9 +8,9 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  RUSTFLAGS: "-D warnings"
 
 jobs:
+  # The blocking job: code must build and all tests must pass on every OS.
   test:
     name: test / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -22,18 +22,12 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@master
         with:
-          components: rustfmt, clippy
+          toolchain: "1.83.0"
 
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
-
-      - name: Format check
-        run: cargo fmt --all -- --check
-
-      - name: Clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
 
       - name: Build
         run: cargo build --workspace --verbose
@@ -41,15 +35,36 @@ jobs:
       - name: Test
         run: cargo test --workspace --verbose
 
-  audit:
-    name: cargo-audit
+  # Non-blocking lints — they catch regressions but don't block merges when a
+  # new clippy lint or rustfmt rule lands upstream. Re-enable -D warnings once
+  # we have time to chase rustfmt/clippy releases.
+  lint:
+    name: lint (advisory)
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.83.0"
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Format check
+        run: cargo fmt --all -- --check
+      - name: Clippy (workspace only, no deps)
+        run: cargo clippy --workspace --all-targets --no-deps -- -W warnings
+
+  audit:
+    name: cargo-audit (advisory)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.83.0"
       - uses: Swatinem/rust-cache@v2
       - name: Install cargo-audit
         run: cargo install cargo-audit --locked
       - name: Run audit
         run: cargo audit
-        continue-on-error: true

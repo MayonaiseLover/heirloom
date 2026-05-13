@@ -1,0 +1,11 @@
+# Pin Rust to a known-good version for both local development and CI.
+# Rationale:
+#   - 1.83.0 is recent enough to satisfy every transitive dep we use.
+#   - It pre-dates edition2024 stabilization (1.85.0), which lets us keep
+#     our pinned older versions of hashbrown, indexmap, base64ct, etc.
+#   - Bumping is fine when you're ready to relax the version pins in
+#     workspace Cargo.toml; do them together.
+[toolchain]
+channel = "1.83.0"
+components = ["rustfmt", "clippy"]
+profile = "minimal"
