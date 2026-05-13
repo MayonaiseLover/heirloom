@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Heirloom — Every AI Is Amnesiac. Give Them Yours.</title>
+<meta name="description" content="Local-first, MCP-native personal memory for AI. One install, then every AI tool — Claude, Cursor, Antigravity, OpenClaw — suddenly knows you."/>
+<meta property="og:title" content="Heirloom"/>
+<meta property="og:description" content="Every AI is amnesiac. Heirloom gives them yours."/>
+<meta property="og:image" content="https://heirloom.web.app/og.png"/>
+<meta property="og:url" content="https://heirloom.web.app"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏺</text></svg>"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:       #0b0906;
+  --bg2:      #131009;
+  --border:   #2a2318;
+  --dim:      #6b5e45;
+  --muted:    #9c8a6e;
+  --text:     #e8dcc8;
+  --bright:   #f5ead6;
+  --amber:    #c8913a;
+  --gold:     #d4a843;
+  --green:    #4ade80;
+  --purple:   #a78bfa;
+  --serif:    'Cormorant Garamond', Georgia, serif;
+  --mono:     'Geist Mono', 'Fira Code', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 15px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ─── noise texture overlay ─── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.6;
+}
+
+/* ─── radial glow behind hero ─── */
+.glow-bg {
+  position: absolute;
+  width: 900px; height: 900px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(200,145,58,.07) 0%, transparent 70%);
+  top: -200px; left: 50%; transform: translateX(-50%);
+  pointer-events: none;
+}
+
+/* ─── layout ─── */
+.container { max-width: 900px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+/* ─── header ─── */
+header {
+  padding: 28px 0;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.wordmark {
+  font-family: var(--serif);
+  font-size: 22px;
+  color: var(--bright);
+  letter-spacing: 0.03em;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.wordmark span { color: var(--amber); }
+nav { display: flex; align-items: center; gap: 24px; }
+nav a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 13px;
+  transition: color .2s;
+  letter-spacing: 0.02em;
+}
+nav a:hover { color: var(--bright); }
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(212,168,67,.1);
+  border: 1px solid rgba(212,168,67,.25);
+  color: var(--gold);
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--gold); animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+
+/* ─── hero ─── */
+.hero {
+  padding: 100px 0 72px;
+  position: relative;
+  text-align: center;
+}
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.eyebrow::before, .eyebrow::after {
+  content: '';
+  flex: 1;
+  max-width: 80px;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--amber));
+}
+.eyebrow::after { background: linear-gradient(to left, transparent, var(--amber)); }
+
+h1 {
+  font-family: var(--serif);
+  font-size: clamp(42px, 7vw, 80px);
+  font-weight: 400;
+  line-height: 1.06;
+  letter-spacing: -0.01em;
+  color: var(--bright);
+  margin-bottom: 16px;
+}
+h1 em {
+  font-style: italic;
+  color: var(--amber);
+  display: block;
+}
+.hero-sub {
+  font-size: 16px;
+  color: var(--muted);
+  max-width: 520px;
+  margin: 0 auto 48px;
+  line-height: 1.75;
+}
+.hero-sub strong { color: var(--text); font-weight: 500; }
+
+/* ─── install block ─── */
+.install-row {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.install-box {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color .2s;
+  position: relative;
+}
+.install-box:hover { border-color: var(--amber); }
+.install-box .prompt { color: var(--amber); user-select: none; }
+.install-box code { color: var(--green); letter-spacing: 0.02em; }
+.copy-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--dim);
+  font-size: 12px;
+  padding: 0;
+  transition: color .2s;
+  font-family: var(--mono);
+}
+.copy-btn:hover { color: var(--bright); }
+.copy-btn.copied { color: var(--green); }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 13px;
+  text-decoration: none;
+  transition: all .2s;
+  letter-spacing: 0.04em;
+}
+.btn-primary {
+  background: var(--amber);
+  color: #0b0906;
+  font-weight: 500;
+}
+.btn-primary:hover { background: var(--gold); }
+.btn-ghost {
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.btn-ghost:hover { border-color: var(--dim); color: var(--text); }
+
+/* ─── terminal demo ─── */
+.demo-wrap {
+  margin: 64px 0;
+  position: relative;
+}
+.demo-wrap::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 13px;
+  background: linear-gradient(135deg, var(--amber) 0%, transparent 50%, var(--purple) 100%);
+  opacity: 0.2;
+  z-index: -1;
+}
+.terminal {
+  background: #0d0b08;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.term-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255,255,255,.02);
+}
+.dot { width: 12px; height: 12px; border-radius: 50%; }
+.dot.r { background: #ff5f57; }
+.dot.y { background: #febc2e; }
+.dot.g { background: #28c840; }
+.term-title { flex: 1; text-align: center; font-size: 12px; color: var(--dim); }
+.term-body { padding: 24px 28px; font-size: 13.5px; line-height: 2.1; }
+.t-prompt { color: var(--green); }
+.t-cmd { color: var(--bright); }
+.t-flag { color: var(--purple); }
+.t-str { color: var(--amber); }
+.t-ok { color: var(--green); }
+.t-dim { color: var(--dim); }
+.t-hit { color: var(--text); }
+.t-mark { color: var(--gold); font-weight: 600; }
+.t-path { color: var(--dim); }
+.t-rule { border: none; border-top: 1px dashed var(--border); margin: 16px 0; }
+.t-label { font-size: 11px; color: var(--dim); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
+.t-resp { color: var(--text); }
+.t-via { font-size: 11px; color: var(--dim); font-style: italic; }
+
+/* animate lines in */
+.term-body .line {
+  opacity: 0;
+  transform: translateY(4px);
+  animation: lineIn .35s ease forwards;
+}
+@keyframes lineIn { to { opacity: 1; transform: none; } }
+.l1  { animation-delay: .1s; }
+.l2  { animation-delay: .4s; }
+.l3  { animation-delay: .6s; }
+.l4  { animation-delay: .75s; }
+.l5  { animation-delay: .9s; }
+.l6  { animation-delay: 1.05s; }
+.l7  { animation-delay: 1.4s; }
+.l8  { animation-delay: 1.7s; }
+.l9  { animation-delay: 1.9s; }
+.l10 { animation-delay: 2.1s; }
+.l11 { animation-delay: 2.3s; }
+.l12 { animation-delay: 2.7s; }
+.l13 { animation-delay: 2.9s; }
+.l14 { animation-delay: 3.1s; }
+
+/* ─── section ─── */
+section { padding: 80px 0; border-top: 1px solid var(--border); }
+
+.section-label {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 16px;
+}
+h2 {
+  font-family: var(--serif);
+  font-size: clamp(28px, 4vw, 44px);
+  font-weight: 400;
+  color: var(--bright);
+  line-height: 1.18;
+  margin-bottom: 20px;
+}
+.section-sub {
+  font-size: 15px;
+  color: var(--muted);
+  max-width: 540px;
+  line-height: 1.8;
+  margin-bottom: 48px;
+}
+
+/* ─── comparison table ─── */
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-top: 8px;
+}
+.compare-table th {
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--amber);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+.compare-table td {
+  padding: 13px 14px;
+  border-bottom: 1px solid rgba(42,35,24,.5);
+  color: var(--muted);
+  vertical-align: middle;
+}
+.compare-table tr.hl td { background: rgba(200,145,58,.04); }
+.compare-table td:first-child { color: var(--text); font-weight: 500; }
+.compare-table td:nth-child(2) { color: var(--bright); }
+.yes { color: var(--green) !important; }
+.no  { color: var(--border) !important; }
+.partial { color: var(--amber) !important; }
+
+/* ─── feature grid ─── */
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+.feat {
+  background: var(--bg2);
+  padding: 28px 24px;
+  transition: background .25s;
+}
+.feat:hover { background: rgba(200,145,58,.05); }
+.feat-icon { font-size: 24px; margin-bottom: 12px; line-height: 1; }
+.feat-title { color: var(--bright); font-size: 14px; margin-bottom: 8px; font-weight: 500; }
+.feat-body { color: var(--dim); font-size: 13px; line-height: 1.7; }
+
+/* ─── sources ─── */
+.sources-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.source-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  transition: all .2s;
+}
+.source-pill:hover { border-color: var(--amber); color: var(--bright); }
+.source-pill.shipped { border-color: rgba(74,222,128,.2); color: var(--green); }
+.source-pill.wanted { border-color: var(--border); color: var(--dim); }
+.source-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+/* ─── clients ─── */
+.clients-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+.client-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+  transition: all .2s;
+  background: var(--bg2);
+}
+.client-card:hover { border-color: var(--amber); }
+.client-name { font-size: 13px; color: var(--text); margin-bottom: 4px; }
+.client-sub  { font-size: 11px; color: var(--dim); }
+
+/* ─── code block ─── */
+.code-block {
+  background: #0d0b08;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 28px;
+  font-size: 13px;
+  line-height: 2;
+  overflow-x: auto;
+}
+.code-block .comment { color: var(--dim); }
+.code-block .cmd     { color: var(--bright); }
+.code-block .flag    { color: var(--purple); }
+.code-block .str     { color: var(--amber); }
+.code-block .ok      { color: var(--green); }
+
+/* ─── teams section ─── */
+.teams-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 8px;
+}
+@media (max-width: 600px) { .teams-grid { grid-template-columns: 1fr; } }
+.teams-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 28px;
+  background: var(--bg2);
+}
+.teams-card h3 {
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--bright);
+  margin-bottom: 12px;
+}
+.teams-card .price {
+  font-size: 28px;
+  color: var(--amber);
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+.teams-card .price small { font-size: 13px; color: var(--dim); }
+.teams-card ul { list-style: none; padding: 0; margin-top: 16px; }
+.teams-card ul li {
+  padding: 6px 0;
+  color: var(--muted);
+  font-size: 13px;
+  border-bottom: 1px solid rgba(42,35,24,.4);
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+.teams-card ul li::before { content: '—'; color: var(--amber); flex-shrink: 0; }
+
+/* ─── CTA ─── */
+.cta-section {
+  padding: 100px 0;
+  text-align: center;
+  border-top: 1px solid var(--border);
+  position: relative;
+}
+.cta-section::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 600px; height: 300px;
+  background: radial-gradient(ellipse, rgba(200,145,58,.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+.cta-section h2 { margin-bottom: 12px; }
+.cta-section p { color: var(--muted); margin-bottom: 40px; }
+.cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+/* ─── footer ─── */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 32px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+footer .copy { font-size: 12px; color: var(--dim); }
+footer nav { gap: 16px; }
+footer nav a { font-size: 12px; }
+
+/* ─── divider ornament ─── */
+.ornament {
+  text-align: center;
+  color: var(--border);
+  font-family: var(--serif);
+  font-size: 22px;
+  letter-spacing: 0.4em;
+  margin: 16px 0;
+  user-select: none;
+}
+
+/* ─── responsive ─── */
+@media (max-width: 640px) {
+  .hero { padding: 64px 0 48px; }
+  .term-body { padding: 18px; font-size: 12px; }
+  .install-box { font-size: 12px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container header-inner">
+    <a class="wordmark" href="/">🏺 Heirloom<span>.</span></a>
+    <nav>
+      <a href="#how">How it works</a>
+      <a href="#ingesters">Sources</a>
+      <a href="https://github.com/MayonaiseLover/heirloom" target="_blank">GitHub</a>
+      <span class="badge">v1.0.1</span>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- HERO -->
+  <div style="position:relative; overflow:hidden;">
+    <div class="glow-bg"></div>
+    <section class="hero" style="border-top:none; padding-top:100px;">
+      <div class="container">
+        <div class="eyebrow">local-first &nbsp;·&nbsp; MCP-native &nbsp;·&nbsp; encrypted</div>
+        <h1>Every AI is amnesiac.<br/><em>Give them yours.</em></h1>
+        <p class="hero-sub">
+          A single Rust binary that ingests your notes, browser history, and AI conversations into an <strong>encrypted local database</strong>, then serves it over MCP so <strong>every AI tool you use suddenly knows you</strong>.
+        </p>
+
+        <div class="install-row">
+          <div class="install-box" id="install-box">
+            <span class="prompt">$</span>
+            <code id="install-cmd">curl -sSL https://heirloom.web.app/install | sh</code>
+            <button class="copy-btn" id="copy-btn" onclick="copyInstall()">copy</button>
+          </div>
+          <a href="https://github.com/MayonaiseLover/heirloom" class="btn btn-ghost" target="_blank">
+            ★ GitHub
+          </a>
+        </div>
+        <div style="font-size:12px; color:var(--dim); margin-bottom:48px;">
+          macOS · Linux · Windows &nbsp;·&nbsp; MIT license &nbsp;·&nbsp; no telemetry
+        </div>
+
+        <!-- terminal demo -->
+        <div class="demo-wrap">
+          <div class="terminal">
+            <div class="term-bar">
+              <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+              <div class="term-title">heirloom — ~/.heirloom</div>
+            </div>
+            <div class="term-body">
+              <div class="line l1"><span class="t-prompt">$</span> <span class="t-cmd">heirloom init</span></div>
+              <div class="line l2"><span class="t-ok">✓</span> <span class="t-dim">initialized · ~/.heirloom/heirloom.db · 0 memories</span></div>
+              <div class="line l3">&nbsp;</div>
+              <div class="line l4"><span class="t-prompt">$</span> <span class="t-cmd">heirloom ingest fs <span class="t-flag">--path</span> <span class="t-str">~/Documents/notes</span></span></div>
+              <div class="line l5"><span class="t-ok">✓</span> <span class="t-dim">scanned 427 · inserted 412 · skipped 15 duplicates</span></div>
+              <div class="line l6">&nbsp;</div>
+              <div class="line l7"><span class="t-prompt">$</span> <span class="t-cmd">heirloom search <span class="t-str">"auth bug Sam was reviewing"</span></span></div>
+              <div class="line l8">&nbsp;</div>
+              <div class="line l9"><span class="t-dim">1. [fs] auth.md  (0.889)</span></div>
+              <div class="line l10"><span class="t-hit">&nbsp;&nbsp; Refactoring OAuth to use <span class="t-mark">PKCE</span>. <span class="t-mark">Sam</span> is reviewing. Due Friday.</span></div>
+              <div class="line l11"><span class="t-path">&nbsp;&nbsp; ↳ ~/Documents/notes/auth.md</span></div>
+              <div class="line l12"><hr class="t-rule"/></div>
+              <div class="line l13"><span class="t-label">…then, from Claude Desktop:</span></div>
+              <div class="line l14"><span class="t-via">"What was that auth bug Sam was reviewing?" → <span class="t-mark">It's the OAuth refactor — PKCE, due Friday.</span> &nbsp;[via Heirloom · search_memory]</span></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <section id="how">
+    <div class="container">
+      <div class="section-label">How it works</div>
+      <h2>Three commands.<br/>All your AI tools, finally aligned.</h2>
+      <p class="section-sub">No API keys. No cloud account. No runtime to manage. Your memory lives in a file you own.</p>
+
+      <div class="features">
+        <div class="feat">
+          <div class="feat-icon">⬇️</div>
+          <div class="feat-title">1. Ingest</div>
+          <div class="feat-body">Run any of 8 built-in ingesters to pull in notes, browser history, Slack exports, AI conversations, and more. Everything lands in a local SQLite database.</div>
+        </div>
+        <div class="feat">
+          <div class="feat-icon">🔒</div>
+          <div class="feat-title">2. Encrypt (optional)</div>
+          <div class="feat-body"><code>heirloom seal</code> encrypts the database with XChaCha20-Poly1305 + Argon2id. An offline attacker with the file can't read your memories without your passphrase.</div>
+        </div>
+        <div class="feat">
+          <div class="feat-icon">🔌</div>
+          <div class="feat-title">3. Connect your AI</div>
+          <div class="feat-body">Add <code>heirloom serve</code> as an MCP server in Claude, Cursor, Antigravity, or any MCP-aware client. That's it. No further config.</div>
+        </div>
+        <div class="feat">
+          <div class="feat-icon">🔍</div>
+          <div class="feat-title">Hybrid search</div>
+          <div class="feat-body">BM25 + n-gram TF-IDF vector scoring. Finds <em>postgresql</em> when you search <em>postgres</em>. Finds <em>authentication</em> when you search <em>auth</em>. No external models needed.</div>
+        </div>
+        <div class="feat">
+          <div class="feat-icon">🌐</div>
+          <div class="feat-title">Web viewer</div>
+          <div class="feat-body"><code>heirloom desktop</code> opens a local dashboard at <code>localhost:7878</code>. Dark theme. One-click redact. No JavaScript framework. No tracking.</div>
+        </div>
+        <div class="feat">
+          <div class="feat-icon">🔄</div>
+          <div class="feat-title">Multi-device sync</div>
+          <div class="feat-body"><code>heirloom sync push</code> produces an encrypted snapshot. Copy it to another device and <code>sync pull --from</code> to merge. End-to-end encrypted — no relay sees plaintext.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INGESTERS -->
+  <section id="ingesters">
+    <div class="container">
+      <div class="section-label">Sources</div>
+      <h2>Eight built-in ingesters.<br/>More coming.</h2>
+      <p class="section-sub">Everything you write, read, or talk about in a day — Heirloom can learn from it. Build your own in ~50 lines; the plugin interface is intentionally tiny.</p>
+
+      <div class="sources-grid">
+        <span class="source-pill shipped"><span class="source-dot"></span>Markdown &amp; text files</span>
+        <span class="source-pill shipped"><span class="source-dot"></span>Chrome / Brave / Arc / Edge</span>
+        <span class="source-pill shipped"><span class="source-dot"></span>Firefox history</span>
+        <span class="source-pill shipped"><span class="source-dot"></span>Claude export</span>
+        <span class="source-pill shipped"><span class="source-dot"></span>ChatGPT export</span>
+        <span class="source-pill shipped"><span class="source-dot"></span>Claude Code sessions</span>
+        <span class="source-pill shipped"><span class="source-dot"></span>Slack workspace export</span>
+        <span class="source-pill shipped"><span class="source-dot"></span>Obsidian vault</span>
+        <span class="source-pill wanted"><span class="source-dot"></span>Linear issues</span>
+        <span class="source-pill wanted"><span class="source-dot"></span>Apple Notes</span>
+        <span class="source-pill wanted"><span class="source-dot"></span>Kindle highlights</span>
+        <span class="source-pill wanted"><span class="source-dot"></span>Notion</span>
+        <span class="source-pill wanted"><span class="source-dot"></span>GitHub PRs</span>
+      </div>
+      <div style="margin-top:16px; font-size:12px; color:var(--dim);">
+        <span style="color:var(--green)">●</span> shipped &nbsp;&nbsp;
+        <span style="color:var(--dim)">●</span> help wanted — see <a href="https://github.com/MayonaiseLover/heirloom/issues?q=label%3Aingester" style="color:var(--amber)" target="_blank">open issues</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- WORKS WITH -->
+  <section id="clients">
+    <div class="container">
+      <div class="section-label">Compatible clients</div>
+      <h2>Same config.<br/>Every MCP-aware tool.</h2>
+      <p class="section-sub">Heirloom exposes a stdio MCP server. Any client that speaks the protocol gets memory — no per-client adapter needed.</p>
+
+      <div class="clients-grid">
+        <div class="client-card">
+          <div class="client-name">Claude Desktop</div>
+          <div class="client-sub">claude_desktop_config.json</div>
+        </div>
+        <div class="client-card">
+          <div class="client-name">Cursor</div>
+          <div class="client-sub">Settings → MCP</div>
+        </div>
+        <div class="client-card">
+          <div class="client-name">Antigravity</div>
+          <div class="client-sub">Google's MCP IDE</div>
+        </div>
+        <div class="client-card">
+          <div class="client-name">OpenClaw</div>
+          <div class="client-sub">workspace mcp.json</div>
+        </div>
+        <div class="client-card">
+          <div class="client-name">Claude Code</div>
+          <div class="client-sub">claude mcp add</div>
+        </div>
+        <div class="client-card">
+          <div class="client-name">Continue</div>
+          <div class="client-sub">config.json</div>
+        </div>
+        <div class="client-card">
+          <div class="client-name">Cline</div>
+          <div class="client-sub">VSCode extension</div>
+        </div>
+        <div class="client-card">
+          <div class="client-name">Zed</div>
+          <div class="client-sub">settings.json</div>
+        </div>
+      </div>
+
+      <div style="margin-top:32px;">
+        <div class="code-block">
+<span class="comment"># Same snippet for every client above</span>
+{
+  <span class="str">"mcpServers"</span>: {
+    <span class="str">"heirloom"</span>: {
+      <span class="str">"command"</span>: <span class="str">"heirloom"</span>,
+      <span class="str">"args"</span>: [<span class="str">"serve"</span>]
+    }
+  }
+}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPARISON -->
+  <section id="compare">
+    <div class="container">
+      <div class="section-label">Comparison</div>
+      <h2>Honest comparison.</h2>
+      <p class="section-sub">Every alternative we know about, fairly represented.</p>
+
+      <div style="overflow-x:auto;">
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th>Heirloom</th>
+              <th>claude-mem</th>
+              <th>claude-brain</th>
+              <th>Rewind</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="hl">
+              <td>Works with any MCP client</td>
+              <td class="yes">✓ All</td>
+              <td class="no">Claude Code only</td>
+              <td class="no">Claude Code only</td>
+              <td class="no">Single app</td>
+            </tr>
+            <tr>
+              <td>Single binary, no runtime</td>
+              <td class="yes">✓ Rust</td>
+              <td class="no">Needs npm</td>
+              <td class="yes">✓ Rust</td>
+              <td class="yes">✓</td>
+            </tr>
+            <tr class="hl">
+              <td>No API keys required</td>
+              <td class="yes">✓</td>
+              <td class="no">Needs LLM key</td>
+              <td class="yes">✓</td>
+              <td class="no">Account</td>
+            </tr>
+            <tr>
+              <td>At-rest encryption</td>
+              <td class="yes">✓ XChaCha20</td>
+              <td class="no">✗</td>
+              <td class="no">✗</td>
+              <td class="yes">✓</td>
+            </tr>
+            <tr class="hl">
+              <td>Local-first, no cloud</td>
+              <td class="yes">✓</td>
+              <td class="partial">Partial</td>
+              <td class="yes">✓</td>
+              <td class="no">Cloud required</td>
+            </tr>
+            <tr>
+              <td>Pluggable ingesters</td>
+              <td class="yes">✓ 8 built-in</td>
+              <td class="no">✗</td>
+              <td class="no">✗</td>
+              <td class="no">Closed</td>
+            </tr>
+            <tr class="hl">
+              <td>Open source</td>
+              <td class="yes">✓ MIT</td>
+              <td class="yes">✓ Apache</td>
+              <td class="yes">✓</td>
+              <td class="no">Closed</td>
+            </tr>
+            <tr>
+              <td>Self-hostable team server</td>
+              <td class="yes">✓ v1.0</td>
+              <td class="no">✗</td>
+              <td class="no">✗</td>
+              <td class="no">✗</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- TEAMS -->
+  <section id="teams">
+    <div class="container">
+      <div class="section-label">Heirloom Teams</div>
+      <h2>Shared memory<br/>for your organization.</h2>
+      <p class="section-sub">Deploy <code>heirloom-team-server</code> on your own infrastructure. Your team's memories live on your hardware.</p>
+
+      <div class="teams-grid">
+        <div class="teams-card">
+          <h3>Self-hosted</h3>
+          <div class="price">Free<small> / always</small></div>
+          <ul>
+            <li>Full source code, MIT license</li>
+            <li>SQLite-backed (scales to millions of memories)</li>
+            <li>Bearer-token auth (OsRng-secure)</li>
+            <li>Role-based: admin / member / read-only</li>
+            <li>Full audit log</li>
+            <li>End-to-end encrypted — server sees only ciphertext</li>
+            <li>Single binary — no Postgres needed</li>
+          </ul>
+        </div>
+        <div class="teams-card" style="border-color: rgba(200,145,58,.3);">
+          <h3>Hosted</h3>
+          <div class="price">Coming <small>in v1.1</small></div>
+          <ul>
+            <li>Everything in self-hosted</li>
+            <li>OIDC / SAML SSO</li>
+            <li>Postgres backend for large orgs</li>
+            <li>Per-source ACLs</li>
+            <li>Managed deployment, backups, uptime</li>
+            <li>Dedicated support &amp; SLAs</li>
+            <li><a href="mailto:hello@heirloom.web.app" style="color:var(--amber)">Join the waitlist →</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="margin-top:32px;">
+        <div class="code-block">
+<span class="comment"># On the server — one-time setup</span>
+<span class="cmd">heirloom-team-server admin init --team-name <span class="str">"Acme Engineering"</span></span>
+<span class="ok"># → prints a bootstrap token (copy it)</span>
+
+<span class="cmd">heirloom-team-server --addr 0.0.0.0:7900</span>
+
+<span class="comment"># On each member's machine</span>
+<span class="cmd">heirloom team join http://team.acme.internal:7900 <span class="flag">--token</span> <span class="str">hlmt_...</span></span>
+<span class="cmd">HEIRLOOM_PASSPHRASE=<span class="str">'shared-team-secret'</span> heirloom team push</span>
+<span class="cmd">HEIRLOOM_PASSPHRASE=<span class="str">'shared-team-secret'</span> heirloom team pull</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <div class="container">
+      <div class="ornament">✦ &nbsp; ✦ &nbsp; ✦</div>
+      <h2 style="margin-top:32px;">You've re-explained yourself<br/>for the last time.</h2>
+      <p>One install. Every AI suddenly knows you.</p>
+      <div class="cta-btns">
+        <a href="https://github.com/MayonaiseLover/heirloom" class="btn btn-primary" target="_blank">★ &nbsp;Star on GitHub</a>
+        <a href="https://github.com/MayonaiseLover/heirloom/releases/latest" class="btn btn-ghost" target="_blank">Download binary →</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="container" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; width:100%">
+    <span class="copy">© 2026 Heirloom. MIT License. Built by <a href="https://github.com/MayonaiseLover" style="color:var(--amber)" target="_blank">MayonaiseLover</a>.</span>
+    <nav style="display:flex; gap:20px;">
+      <a href="https://github.com/MayonaiseLover/heirloom" target="_blank">GitHub</a>
+      <a href="https://github.com/MayonaiseLover/heirloom/blob/main/SECURITY.md" target="_blank">Security</a>
+      <a href="https://github.com/MayonaiseLover/heirloom/blob/main/CHANGELOG.md" target="_blank">Changelog</a>
+      <a href="mailto:security@heirloom.web.app">Contact</a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+function copyInstall() {
+  const cmd = document.getElementById('install-cmd').textContent;
+  navigator.clipboard.writeText(cmd).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = 'copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+</script>
+</body>
+</html>
