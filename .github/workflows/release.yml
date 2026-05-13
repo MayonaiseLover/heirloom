@@ -10,6 +10,7 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: "1.83.0"
 
 jobs:
   build:
@@ -37,15 +38,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
           targets: ${{ matrix.target }}
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
 
       - name: Install cross (for aarch64-linux)
         if: matrix.target == 'aarch64-unknown-linux-gnu'
-        run: |
-          cargo install cross --locked
+        run: cargo install cross --locked --version 0.2.5
 
       - name: Build (cross)
         if: matrix.target == 'aarch64-unknown-linux-gnu'
@@ -55,13 +61,21 @@ jobs:
         if: matrix.target != 'aarch64-unknown-linux-gnu'
         run: cargo build --release --target ${{ matrix.target }} -p heirloom-cli
 
+      - name: Build heirloom-team-server (native only)
+        if: matrix.target != 'aarch64-unknown-linux-gnu'
+        run: cargo build --release --target ${{ matrix.target }} -p heirloom-team
+        continue-on-error: true
+
       - name: Package (tar.gz)
         if: matrix.archive == 'tar.gz'
         run: |
           mkdir -p dist
           NAME="heirloom-${GITHUB_REF_NAME}-${{ matrix.target }}"
           mkdir -p "$NAME"
-          cp target/${{ matrix.target }}/release/heirloom "$NAME/"
+          cp "target/${{ matrix.target }}/release/heirloom" "$NAME/"
+          if [ -f "target/${{ matrix.target }}/release/heirloom-team-server" ]; then
+            cp "target/${{ matrix.target }}/release/heirloom-team-server" "$NAME/"
+          fi
           cp README.md LICENSE CHANGELOG.md "$NAME/"
           tar czf "dist/$NAME.tar.gz" "$NAME"
         shell: bash
@@ -73,6 +87,9 @@ jobs:
           $name = "heirloom-$env:GITHUB_REF_NAME-${{ matrix.target }}"
           New-Item -ItemType Directory -Path $name | Out-Null
           Copy-Item "target/${{ matrix.target }}/release/heirloom.exe" "$name/"
+          if (Test-Path "target/${{ matrix.target }}/release/heirloom-team-server.exe") {
+            Copy-Item "target/${{ matrix.target }}/release/heirloom-team-server.exe" "$name/"
+          }
           Copy-Item README.md, LICENSE, CHANGELOG.md "$name/"
           Compress-Archive -Path $name -DestinationPath "dist/$name.zip"
         shell: pwsh
@@ -98,4 +115,4 @@ jobs:
         with:
           files: artifacts/*
           generate_release_notes: true
-          body_path: CHANGELOG.md
+          fail_on_unmatched_files: false

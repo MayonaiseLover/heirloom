@@ -49,7 +49,7 @@ Your memory is a file you own. Not a SaaS account.
 ## Quickstart
 
 ```bash
-curl -sSL https://heirlooom.web.app/install | sh
+curl -sSL https://heirloom-webb.web.app/install | sh
 heirloom init
 
 # Ingest something
@@ -279,7 +279,7 @@ Then `heirloom watch` and forget.
 - **Viewer binds to loopback only.** No LAN exposure.
 - **Team server is yours.** When you self-host `heirloom-team-server`, the bytes live on your hardware, with full audit logs.
 
-If you find a security issue, please email `security@heirlooom.web.app` rather than filing a public issue.
+If you find a security issue, please email `security@heirloom-webb.web.app` rather than filing a public issue.
 
 ## Roadmap
 

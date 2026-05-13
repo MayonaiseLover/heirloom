@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
-# Heirloom installer — https://heirlooom.web.app/install
+# Heirloom installer — https://heirloom-webb.web.app/install
 # Usage:
-#   curl -sSL https://heirlooom.web.app/install | sh
+#   curl -sSL https://heirloom-webb.web.app/install | sh
 #
 # Tries in order:
 #   1. Pre-built binary from latest GitHub release
@@ -118,7 +118,7 @@ if [ -z "${SUCCESS:-}" ]; then
   Option 1 — Install Rust, then re-run this script:
       curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
       source "\$HOME/.cargo/env"
-      curl -sSL https://heirlooom.web.app/install | sh
+      curl -sSL https://heirloom-webb.web.app/install | sh
 
   Option 2 — Clone and build manually:
       git clone https://github.com/$REPO
