@@ -4,7 +4,7 @@
 
 Email `security@heirloom.web.app` rather than opening a public issue. We'll acknowledge within 72 hours.
 
-If the issue is urgent and you can't reach us by email, open a [security advisory](https://github.com/heirloom-dev/heirloom/security/advisories/new) on GitHub — it stays private until disclosed.
+If the issue is urgent and you can't reach us by email, open a [security advisory](https://github.com/MayonaiseLover/heirloom/security/advisories/new) on GitHub — it stays private until disclosed.
 
 ## Threat model
 

@@ -86,4 +86,4 @@ The local single-user version stays free forever.
 
 GitHub · Docs · Twitter · Blog · `security@heirloom.web.app`
 
-© 2026 Heirloom Contributors · [MIT License](https://github.com/heirloom-dev/heirloom/blob/main/LICENSE)
+© 2026 Heirloom Contributors · [MIT License](https://github.com/MayonaiseLover/heirloom/blob/main/LICENSE)

@@ -35,7 +35,12 @@ use std::hash::{Hash, Hasher};
 pub const DIM: usize = 256;
 
 /// Contract for any embedding implementation. The default ships with
-/// Heirloom; the trait exists so v0.3 can swap in a BERT/BGE backend.
+/// Heirloom; the trait exists so a future v1.1 feature can swap in a
+/// BERT/BGE backend.
+///
+/// This trait is a thin wrapper around [`heirloom_core::Embedder`] for
+/// crates that don't want to depend on core directly. Both traits have
+/// identical shape — `HashEmbedder` implements both.
 pub trait Embedder: Send + Sync {
     fn embed(&self, text: &str) -> Vec<f32>;
     fn dim(&self) -> usize;
@@ -95,6 +100,17 @@ impl Embedder for HashEmbedder {
 
     fn dim(&self) -> usize {
         DIM
+    }
+}
+
+// Same trait, different crate. Implementing both lets users plug HashEmbedder
+// into Store::set_embedder() directly without an adapter shim.
+impl heirloom_core::Embedder for HashEmbedder {
+    fn embed(&self, text: &str) -> Vec<f32> {
+        <Self as Embedder>::embed(self, text)
+    }
+    fn dim(&self) -> usize {
+        <Self as Embedder>::dim(self)
     }
 }
 

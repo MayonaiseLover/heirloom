@@ -36,7 +36,7 @@ What I'm hoping the HN crowd does:
 
 The README has the install + Claude Desktop config snippet, both verbatim copy-paste:
 
-https://github.com/heirloom-dev/heirloom
+https://github.com/MayonaiseLover/heirloom
 
 A few things I deliberately did not do for v0.1:
 

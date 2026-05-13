@@ -134,6 +134,10 @@ enum Cmd {
 
     /// Run basic environment checks.
     Doctor,
+
+    /// Backfill hybrid-search vectors for memories that don't have one yet.
+    /// Run this once after upgrading from a v0.1.x store.
+    Reindex,
 }
 
 #[derive(Subcommand, Debug)]
@@ -149,8 +153,33 @@ enum TeamAction {
     },
     /// Forget the configured team server and token.
     Leave,
-    /// Ping the configured server's /v1/health.
+    /// Verify the configured server is reachable.
     Ping,
+    /// List members of the team (admin only).
+    Members,
+    /// Show the team's audit log (admin only).
+    Audit {
+        #[arg(long, default_value_t = 50)]
+        limit: i64,
+    },
+    /// Encrypt and upload memories from the local store to the team server.
+    Push {
+        #[arg(long, env = "HEIRLOOM_PASSPHRASE")]
+        passphrase: String,
+        /// Only push memories tagged with this source (e.g. --source notes).
+        #[arg(long)]
+        source: Option<String>,
+        /// Cap the number of memories pushed in one run.
+        #[arg(long, default_value_t = 500)]
+        limit: usize,
+    },
+    /// Fetch memories from the team server and merge into the local store.
+    Pull {
+        #[arg(long, env = "HEIRLOOM_PASSPHRASE")]
+        passphrase: String,
+        #[arg(long, default_value_t = 200)]
+        limit: i64,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -163,9 +192,17 @@ enum SyncAction {
         url: Option<String>,
     },
     /// Encrypt and upload a snapshot of the local store to the configured relay.
-    /// Not yet wired to a network transport in v0.1 — produces a local
-    /// snapshot file at `~/.heirloom/snapshots/`.
+    /// Hosted relay lands in v1.1 — for now this produces a local snapshot
+    /// at `~/.heirloom/snapshots/` you can copy to another device.
     Push {
+        #[arg(long, env = "HEIRLOOM_PASSPHRASE")]
+        passphrase: String,
+    },
+    /// Decrypt and merge a snapshot file produced by `sync push` on another device.
+    Pull {
+        /// Path to the `.hlm` snapshot file.
+        #[arg(long)]
+        from: PathBuf,
         #[arg(long, env = "HEIRLOOM_PASSPHRASE")]
         passphrase: String,
     },
@@ -198,12 +235,13 @@ async fn main() -> Result<()> {
         Cmd::Seal { passphrase } => cmd_seal(&db_path, passphrase),
         Cmd::Unseal { passphrase } => cmd_unseal(&db_path, passphrase),
         Cmd::Sync { action } => cmd_sync(&home, &db_path, action).await,
-        Cmd::Team { action } => cmd_team(&home, action),
+        Cmd::Team { action } => cmd_team(&home, &db_path, action).await,
         Cmd::Export { output, source } => cmd_export(&db_path, output, source),
         Cmd::Status => cmd_status(&db_path, cli.json),
         Cmd::Recent { limit, source } => cmd_recent(&db_path, limit, source, cli.json),
         Cmd::Redact { id, query } => cmd_redact(&db_path, id, query, cli.json),
         Cmd::Doctor => cmd_doctor(&home, &db_path),
+        Cmd::Reindex => cmd_reindex(&db_path),
     }
 }
 
@@ -232,6 +270,8 @@ fn resolve_home(override_path: Option<PathBuf>) -> Result<PathBuf> {
 
 fn open_store(db_path: &std::path::Path) -> Result<Arc<Store>> {
     let store = Store::open(db_path).with_context(|| format!("opening {}", db_path.display()))?;
+    // Attach the hybrid-search embedder so add()/search() use BM25 + cosine.
+    store.set_embedder(Box::new(heirloom_vector::HashEmbedder::new()));
     Ok(Arc::new(store))
 }
 
@@ -512,8 +552,40 @@ async fn cmd_sync(
             println!("  file:  {}", out.display());
             if state.relay_url.is_some() {
                 println!();
-                println!("Note: relay upload not yet implemented in v0.1 — the snapshot is");
+                println!("Note: hosted relay upload lands in v1.1 — the snapshot is");
                 println!("stored locally. Copy to another device manually for now.");
+            }
+            Ok(())
+        }
+        SyncAction::Pull { from, passphrase } => {
+            if !from.exists() {
+                anyhow::bail!("snapshot file does not exist: {}", from.display());
+            }
+            let ciphertext = std::fs::read(&from)?;
+            // Decrypt the snapshot to a temp DB, then iterate every memory and merge.
+            let tmp = tempfile::tempdir()?;
+            let incoming_db = heirloom_sync::apply_snapshot(tmp.path(), &ciphertext, &passphrase)?;
+            // Open the incoming DB without an embedder — we'll re-embed locally on merge.
+            let incoming = Store::open(incoming_db)?;
+            let local = open_store(db_path)?;
+            let memories = incoming.recent(None, i64::MAX as usize)?;
+            let total = memories.len();
+            let (inserted, _errs, skipped) =
+                heirloom_sync::merge_memories(&local, memories.into_iter())?;
+            println!("✓ pulled snapshot from {}", from.display());
+            println!("  total in snapshot:  {}", total);
+            println!("  newly merged:       {}", inserted);
+            println!("  already present:    {}", skipped);
+            // Mark the snapshot id (if known) as pulled.
+            let meta_path = from.with_extension("json");
+            if let Ok(raw) = std::fs::read_to_string(meta_path) {
+                if let Ok(header) = serde_json::from_str::<heirloom_sync::SnapshotHeader>(&raw) {
+                    if !state.known_snapshots.contains(&header.snapshot_id) {
+                        state.known_snapshots.push(header.snapshot_id);
+                    }
+                    state.last_pulled = Some(chrono::Utc::now());
+                    state.save(home)?;
+                }
             }
             Ok(())
         }
@@ -526,8 +598,178 @@ async fn cmd_watch(home: &std::path::Path, db_path: &std::path::Path) -> Result<
     heirloom_watch::run(store, config).await
 }
 
-fn cmd_team(home: &std::path::Path, action: TeamAction) -> Result<()> {
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
+struct TeamConfig {
+    url: String,
+    token: String,
+}
+
+impl TeamConfig {
+    fn load(path: &std::path::Path) -> Result<Self> {
+        let raw = std::fs::read_to_string(path)
+            .with_context(|| format!("reading team config {}", path.display()))?;
+        Ok(serde_json::from_str(&raw)?)
+    }
+}
+
+/// Minimal HTTP/1.1 client over tokio TcpStream. We use it instead of a
+/// dependency like `ureq` to keep the build dep tree small and avoid the
+/// `url`/`idna` crates that need recent Rust editions. HTTPS is intentionally
+/// not supported here — self-hosted team servers should sit behind a reverse
+/// proxy that terminates TLS (nginx, caddy, traefik, Cloudflare Tunnel, etc.).
+mod team_http {
+    use anyhow::{anyhow, Context, Result};
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::net::TcpStream;
+    use tokio::time::{timeout, Duration};
+
+    const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
+    const READ_TIMEOUT: Duration = Duration::from_secs(30);
+    const MAX_BODY_BYTES: usize = 64 * 1024 * 1024;
+
+    pub struct Response {
+        pub status: u16,
+        pub body: Vec<u8>,
+    }
+
+    impl Response {
+        pub fn body_text(&self) -> &str {
+            std::str::from_utf8(&self.body).unwrap_or("")
+        }
+        pub fn json<T: serde::de::DeserializeOwned>(&self) -> Result<T> {
+            serde_json::from_slice(&self.body)
+                .with_context(|| format!("bad JSON: {}", self.body_text()))
+        }
+    }
+
+    /// Parse a `http://host:port/path` URL into the pieces we need.
+    /// Refuses `https://` so users get a clear error to set up a reverse proxy.
+    fn parse_url(url: &str) -> Result<(String, u16, String)> {
+        let rest = match url.strip_prefix("http://") {
+            Some(r) => r,
+            None => {
+                if url.starts_with("https://") {
+                    anyhow::bail!(
+                        "https:// is not supported by the built-in team HTTP client.\n\
+                         Run a reverse proxy (nginx, caddy, Cloudflare Tunnel) in front of the team server,\n\
+                         then point `heirloom team join` at the http:// address on your private network."
+                    );
+                }
+                anyhow::bail!("url must start with http://");
+            }
+        };
+        let (authority, path_part) = match rest.find('/') {
+            Some(i) => (&rest[..i], &rest[i..]),
+            None => (rest, "/"),
+        };
+        let (host, port) = match authority.rsplit_once(':') {
+            Some((h, p)) => (h.to_string(), p.parse().context("invalid port")?),
+            None => (authority.to_string(), 80u16),
+        };
+        Ok((host, port, path_part.to_string()))
+    }
+
+    pub async fn get(url: &str, bearer: Option<&str>) -> Result<Response> {
+        request("GET", url, bearer, None).await
+    }
+
+    pub async fn post_json(
+        url: &str,
+        bearer: Option<&str>,
+        body: &serde_json::Value,
+    ) -> Result<Response> {
+        let body_bytes = serde_json::to_vec(body)?;
+        request("POST", url, bearer, Some(("application/json", body_bytes))).await
+    }
+
+    async fn request(
+        method: &str,
+        url: &str,
+        bearer: Option<&str>,
+        body: Option<(&str, Vec<u8>)>,
+    ) -> Result<Response> {
+        let (host, port, path) = parse_url(url)?;
+        let addr = format!("{host}:{port}");
+        let stream = timeout(CONNECT_TIMEOUT, TcpStream::connect(&addr))
+            .await
+            .map_err(|_| anyhow!("connection to {} timed out", addr))?
+            .with_context(|| format!("connecting to {}", addr))?;
+        let mut stream = stream;
+
+        let mut req = format!(
+            "{method} {path} HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\nAccept: application/json\r\nUser-Agent: heirloom-cli/{ver}\r\n",
+            ver = env!("CARGO_PKG_VERSION"),
+        );
+        if let Some(token) = bearer {
+            req.push_str(&format!("Authorization: Bearer {}\r\n", token));
+        }
+        if let Some((ctype, ref bytes)) = body {
+            req.push_str(&format!(
+                "Content-Type: {}\r\nContent-Length: {}\r\n",
+                ctype,
+                bytes.len()
+            ));
+        }
+        req.push_str("\r\n");
+
+        stream.write_all(req.as_bytes()).await?;
+        if let Some((_, bytes)) = body {
+            stream.write_all(&bytes).await?;
+        }
+        stream.flush().await?;
+
+        // Read until EOF (we sent Connection: close so the server closes after the body).
+        let mut raw = Vec::with_capacity(8192);
+        let read_fut = stream.read_to_end(&mut raw);
+        match timeout(READ_TIMEOUT, read_fut).await {
+            Ok(Ok(_)) => {}
+            Ok(Err(e)) => return Err(e.into()),
+            Err(_) => anyhow::bail!("read from {} timed out", addr),
+        }
+        if raw.len() > MAX_BODY_BYTES {
+            anyhow::bail!("response too large ({} bytes)", raw.len());
+        }
+        parse_response(&raw)
+    }
+
+    fn parse_response(buf: &[u8]) -> Result<Response> {
+        let header_end = buf
+            .windows(4)
+            .position(|w| w == b"\r\n\r\n")
+            .ok_or_else(|| anyhow!("malformed response (no header terminator)"))?;
+        let header_str = std::str::from_utf8(&buf[..header_end])
+            .map_err(|_| anyhow!("non-utf8 response headers"))?;
+        let status_line = header_str
+            .lines()
+            .next()
+            .ok_or_else(|| anyhow!("empty response"))?;
+        // "HTTP/1.1 200 OK"
+        let mut parts = status_line.split_whitespace();
+        parts.next(); // version
+        let status: u16 = parts
+            .next()
+            .ok_or_else(|| anyhow!("no status code"))?
+            .parse()
+            .context("bad status code")?;
+        let body = buf[(header_end + 4)..].to_vec();
+        Ok(Response { status, body })
+    }
+}
+
+async fn cmd_team(
+    home: &std::path::Path,
+    db_path: &std::path::Path,
+    action: TeamAction,
+) -> Result<()> {
     let config_path = home.join("team.json");
+
+    let require_config = || -> Result<TeamConfig> {
+        if !config_path.exists() {
+            anyhow::bail!("no team config — run `heirloom team join URL --token TOKEN` first");
+        }
+        TeamConfig::load(&config_path)
+    };
+
     match action {
         TeamAction::Status => {
             if !config_path.exists() {
@@ -535,25 +777,10 @@ fn cmd_team(home: &std::path::Path, action: TeamAction) -> Result<()> {
                 println!("Run `heirloom team join URL --token TOKEN` to connect.");
                 return Ok(());
             }
-            let raw = std::fs::read_to_string(&config_path)?;
-            let cfg: serde_json::Value = serde_json::from_str(&raw)?;
+            let cfg = TeamConfig::load(&config_path)?;
             println!("Team server:");
-            println!(
-                "  url:    {}",
-                cfg.get("url").and_then(|v| v.as_str()).unwrap_or("(unset)")
-            );
-            println!(
-                "  token:  {} (length: {})",
-                if cfg.get("token").is_some() {
-                    "configured"
-                } else {
-                    "(unset)"
-                },
-                cfg.get("token")
-                    .and_then(|v| v.as_str())
-                    .map(|s| s.len())
-                    .unwrap_or(0)
-            );
+            println!("  url:     {}", cfg.url);
+            println!("  token:   configured ({} chars)", cfg.token.len());
             println!();
             println!("Use `heirloom team ping` to verify the server is reachable.");
             Ok(())
@@ -562,9 +789,12 @@ fn cmd_team(home: &std::path::Path, action: TeamAction) -> Result<()> {
             if !token.starts_with("hlmt_") {
                 anyhow::bail!("token does not look like a Heirloom team token (expected hlmt_…)");
             }
-            let cfg = serde_json::json!({ "url": url, "token": token });
+            let cfg = TeamConfig {
+                url: url.trim_end_matches('/').to_string(),
+                token,
+            };
             std::fs::write(&config_path, serde_json::to_string_pretty(&cfg)?)?;
-            println!("✓ joined {}", url);
+            println!("✓ joined {}", cfg.url);
             println!("  config written to {}", config_path.display());
             println!();
             println!("Run `heirloom team ping` to verify the server is reachable.");
@@ -580,22 +810,144 @@ fn cmd_team(home: &std::path::Path, action: TeamAction) -> Result<()> {
             Ok(())
         }
         TeamAction::Ping => {
-            if !config_path.exists() {
-                anyhow::bail!("no team config — run `heirloom team join` first");
+            let cfg = require_config()?;
+            let url = format!("{}/v1/health", cfg.url);
+            let resp = team_http::get(&url, None)
+                .await
+                .with_context(|| format!("ping {}", url))?;
+            println!("✓ {} → HTTP {}", url, resp.status);
+            println!("  body: {}", resp.body_text().trim());
+            Ok(())
+        }
+        TeamAction::Members => {
+            let cfg = require_config()?;
+            let url = format!("{}/v1/members", cfg.url);
+            let resp = team_http::get(&url, Some(&cfg.token))
+                .await
+                .with_context(|| format!("GET {}", url))?;
+            if resp.status >= 400 {
+                anyhow::bail!("server returned HTTP {}: {}", resp.status, resp.body_text());
             }
-            let raw = std::fs::read_to_string(&config_path)?;
-            let cfg: serde_json::Value = serde_json::from_str(&raw)?;
-            let url = cfg
-                .get("url")
-                .and_then(|v| v.as_str())
-                .ok_or_else(|| anyhow::anyhow!("missing url in team config"))?;
-            println!("Would ping {}/v1/health", url);
-            println!("Note: HTTP transport is wired in v1.1; the team server is reachable today via curl:");
-            println!();
-            println!(
-                "    curl -H 'Authorization: Bearer <token>' {}/v1/health",
-                url
-            );
+            match serde_json::from_slice::<serde_json::Value>(&resp.body) {
+                Ok(v) => println!("{}", serde_json::to_string_pretty(&v)?),
+                Err(_) => println!("{}", resp.body_text()),
+            }
+            Ok(())
+        }
+        TeamAction::Audit { limit } => {
+            let cfg = require_config()?;
+            let url = format!("{}/v1/audit?limit={}", cfg.url, limit);
+            let resp = team_http::get(&url, Some(&cfg.token))
+                .await
+                .with_context(|| format!("GET {}", url))?;
+            if resp.status >= 400 {
+                anyhow::bail!("server returned HTTP {}: {}", resp.status, resp.body_text());
+            }
+            match serde_json::from_slice::<serde_json::Value>(&resp.body) {
+                Ok(v) => println!("{}", serde_json::to_string_pretty(&v)?),
+                Err(_) => println!("{}", resp.body_text()),
+            }
+            Ok(())
+        }
+        TeamAction::Push {
+            passphrase,
+            source,
+            limit,
+        } => {
+            let cfg = require_config()?;
+            let store = open_store(db_path)?;
+            let memories = store.recent(source.as_deref(), limit)?;
+            if memories.is_empty() {
+                println!("Nothing to push — store has no memories matching the filter.");
+                return Ok(());
+            }
+            let url = format!("{}/v1/memories", cfg.url);
+            let mut pushed = 0u64;
+            let mut errors = 0u64;
+            for m in &memories {
+                let serialized = serde_json::to_vec(m)?;
+                let ciphertext = heirloom_crypto::seal_bytes(&serialized, &passphrase)?;
+                let tags: Vec<String> = m
+                    .metadata
+                    .get("tags")
+                    .map(|t| t.split(',').map(|s| s.trim().to_string()).collect())
+                    .unwrap_or_default();
+                let body = serde_json::json!({
+                    "source": m.source,
+                    "kind": m.kind,
+                    "ciphertext_hex": hex::encode(&ciphertext),
+                    "tags": tags,
+                });
+                match team_http::post_json(&url, Some(&cfg.token), &body).await {
+                    Ok(resp) if resp.status < 400 => pushed += 1,
+                    Ok(resp) => {
+                        eprintln!(
+                            "  ! HTTP {} for memory {}: {}",
+                            resp.status,
+                            m.id,
+                            resp.body_text()
+                        );
+                        errors += 1;
+                    }
+                    Err(e) => {
+                        eprintln!("  ! failed to push {}: {}", m.id, e);
+                        errors += 1;
+                    }
+                }
+            }
+            println!("✓ team push complete");
+            println!("  pushed:  {}", pushed);
+            println!("  errors:  {}", errors);
+            Ok(())
+        }
+        TeamAction::Pull { passphrase, limit } => {
+            let cfg = require_config()?;
+            let store = open_store(db_path)?;
+            let url = format!("{}/v1/memories?limit={}", cfg.url, limit);
+            let resp = team_http::get(&url, Some(&cfg.token))
+                .await
+                .with_context(|| format!("GET {}", url))?;
+            if resp.status >= 400 {
+                anyhow::bail!("server returned HTTP {}: {}", resp.status, resp.body_text());
+            }
+            #[derive(serde::Deserialize)]
+            struct ListResp {
+                memories: Vec<MemoryWire>,
+            }
+            #[derive(serde::Deserialize)]
+            struct MemoryWire {
+                ciphertext_hex: String,
+            }
+            let parsed: ListResp = resp.json()?;
+            let mut inserted = 0u64;
+            let mut decrypt_failures = 0u64;
+            for w in parsed.memories {
+                let Ok(ct) = hex::decode(&w.ciphertext_hex) else {
+                    decrypt_failures += 1;
+                    continue;
+                };
+                let Ok(plain) = heirloom_crypto::unseal_bytes(&ct, &passphrase) else {
+                    decrypt_failures += 1;
+                    continue;
+                };
+                let Ok(memory) = serde_json::from_slice::<heirloom_core::Memory>(&plain) else {
+                    decrypt_failures += 1;
+                    continue;
+                };
+                if store.add(&memory)? {
+                    inserted += 1;
+                }
+            }
+            println!("✓ team pull complete");
+            println!("  newly merged:        {}", inserted);
+            println!("  decrypt failures:    {}", decrypt_failures);
+            if decrypt_failures > 0 {
+                println!();
+                println!(
+                    "Hint: decrypt failures usually mean the wrong passphrase. Each team member"
+                );
+                println!("must use the same shared team passphrase to read each other's memories.");
+            }
             Ok(())
         }
     }
@@ -723,6 +1075,14 @@ fn cmd_redact(
             if removed == 1 { "y" } else { "ies" }
         );
     }
+    Ok(())
+}
+
+fn cmd_reindex(db_path: &std::path::Path) -> Result<()> {
+    let store = open_store(db_path)?;
+    let n = store.reindex_vectors()?;
+    println!("✓ reindex complete");
+    println!("  vectors backfilled: {}", n);
     Ok(())
 }
 

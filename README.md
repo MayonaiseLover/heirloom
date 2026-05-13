@@ -8,7 +8,7 @@
 
 A local-first, MCP-native personal memory layer for AI. One install, then every MCP-aware AI tool — Claude, Cursor, Antigravity, OpenClaw, ChatGPT, custom agents — suddenly knows you.
 
-[![CI](https://github.com/heirloom-dev/heirloom/actions/workflows/ci.yml/badge.svg)](https://github.com/heirloom-dev/heirloom/actions/workflows/ci.yml)
+[![CI](https://github.com/MayonaiseLover/heirloom/actions/workflows/ci.yml/badge.svg)](https://github.com/MayonaiseLover/heirloom/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![MCP](https://img.shields.io/badge/MCP-compatible-7c3aed.svg)](https://modelcontextprotocol.io)
 [![Rust](https://img.shields.io/badge/built_with-Rust-orange.svg)](https://www.rust-lang.org/)
@@ -42,7 +42,7 @@ Your memory is a file you own. Not a SaaS account.
 | Web viewer included | ✅ `localhost:7878` | ✅ | ❌ | ❌ | ✅ |
 | Auto-capture daemon | ✅ `heirloom watch` | ✅ hooks | ❌ | ✅ hooks | ✅ |
 | Pluggable ingester architecture | ✅ ~50-line plugins | ❌ | ❌ | ❌ | ❌ |
-| Encrypted multi-device sync | ✅ client + protocol shipped | ❌ | ❌ | ✅ Supabase | ❌ |
+| Encrypted multi-device sync | ✅ snapshot push + pull shipped | ❌ | ❌ | ✅ Supabase | ❌ |
 | **Self-hostable team-memory server** | ✅ **`heirloom-team-server`** | ❌ | ❌ | ❌ | ❌ |
 | Open source | ✅ MIT | ✅ Apache | ✅ | ✅ MIT | ❌ |
 
@@ -194,11 +194,11 @@ Single-user sync across your own machines uses the same `.hlm v1` envelope:
 
 ```bash
 heirloom sync status                                          # show device id + relay config
-heirloom sync set-relay https://relay.heirloom.web.app        # configure a relay
-HEIRLOOM_PASSPHRASE='...' heirloom sync push                  # produce an encrypted snapshot
+HEIRLOOM_PASSPHRASE='...' heirloom sync push                  # produce encrypted snapshot at ~/.heirloom/snapshots/
+HEIRLOOM_PASSPHRASE='...' heirloom sync pull --from SNAP.hlm  # decrypt + merge into local store
 ```
 
-End-to-end encryption: the relay never sees plaintext. Protocol spec in [`docs/design/sync-protocol.md`](docs/design/sync-protocol.md). The reference relay is a ~150-line axum service over an object store — designed but not yet hosted. v0.1 produces snapshot files locally; copy between devices manually until the hosted relay ships.
+End-to-end encrypted. Copy the `.hlm` between your devices over whatever transport you trust — Syncthing, AirDrop, USB stick, Dropbox, an S3 bucket you own. A hosted public relay (so you don't have to move the file yourself) is on the v1.1 roadmap; the full protocol spec is in [`docs/design/sync-protocol.md`](docs/design/sync-protocol.md).
 
 ## Web viewer & desktop
 
@@ -277,7 +277,7 @@ If you find a security issue, please email `security@heirloom.web.app` rather th
 
 ## Contributing
 
-We especially want **new ingesters**. They're the highest-leverage contribution and the design is intentionally tiny — you can ship one in an evening. Pick from the [wanted list](https://github.com/heirloom-dev/heirloom/issues?q=is%3Aissue+label%3Aingester) or propose your own.
+We especially want **new ingesters**. They're the highest-leverage contribution and the design is intentionally tiny — you can ship one in an evening. Pick from the [wanted list](https://github.com/MayonaiseLover/heirloom/issues?q=is%3Aissue+label%3Aingester) or propose your own.
 
 For everything else, see [CONTRIBUTING.md](CONTRIBUTING.md).
 

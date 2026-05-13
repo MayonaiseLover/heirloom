@@ -12,7 +12,7 @@
 
 set -euo pipefail
 
-REPO="heirloom-dev/heirloom"
+REPO="MayonaiseLover/heirloom"
 PREFIX="${HEIRLOOM_PREFIX:-$HOME/.local/bin}"
 
 die() { printf "\033[1;31merror:\033[0m %s\n" "$*" >&2; exit 1; }

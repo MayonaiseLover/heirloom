@@ -222,6 +222,30 @@ fn handle_tools_list() -> Value {
                     },
                     "required": ["id"]
                 }
+            },
+            {
+                "name": "add_memory",
+                "description": "Record a new memory in the user's local store. Use this when the user shares a preference, decision, fact, or anything they want remembered across conversations. Be conservative — only record things the user would actually want persisted. Always set `source` to 'agent' so memories you write are clearly distinguishable from ingested ones.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "content": {
+                            "type": "string",
+                            "description": "The text to remember. Write it as a third-person statement (e.g. 'User prefers dark mode in their editor')."
+                        },
+                        "source": {
+                            "type": "string",
+                            "description": "Source tag — should be 'agent' for memories written by an AI.",
+                            "default": "agent"
+                        },
+                        "kind": {
+                            "type": "string",
+                            "description": "Subtype (e.g. 'preference', 'decision', 'fact').",
+                            "default": "note"
+                        }
+                    },
+                    "required": ["content"]
+                }
             }
         ]
     })
@@ -242,6 +266,7 @@ async fn handle_tools_call(params: Value, store: &Arc<Store>) -> Result<Value> {
         "recent_memories" => tool_recent(args, store)?,
         "list_sources" => tool_list_sources(store)?,
         "get_memory" => tool_get_memory(args, store)?,
+        "add_memory" => tool_add_memory(args, store)?,
         other => anyhow::bail!("unknown tool: {}", other),
     };
 
@@ -338,6 +363,31 @@ fn tool_get_memory(args: Value, store: &Arc<Store>) -> Result<Value> {
         })),
         None => Ok(json!({ "error": "not found", "id": id })),
     }
+}
+
+fn tool_add_memory(args: Value, store: &Arc<Store>) -> Result<Value> {
+    let content = args
+        .get("content")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| anyhow::anyhow!("missing content"))?;
+    let content = content.trim();
+    if content.is_empty() {
+        anyhow::bail!("empty content");
+    }
+    let source = args
+        .get("source")
+        .and_then(|v| v.as_str())
+        .unwrap_or("agent");
+    let kind = args.get("kind").and_then(|v| v.as_str()).unwrap_or("note");
+    let memory = heirloom_core::Memory::new(source, kind, content);
+    let inserted = store.add(&memory)?;
+    Ok(json!({
+        "id": memory.id,
+        "inserted": inserted,
+        "source": memory.source,
+        "kind": memory.kind,
+        "note": if inserted { "memory stored" } else { "duplicate — already in store" }
+    }))
 }
 
 fn truncate(s: &str, max: usize) -> String {

@@ -29,4 +29,4 @@ mod store;
 
 pub use error::{Error, Result};
 pub use memory::{Memory, SearchFilters, SearchResult};
-pub use store::Store;
+pub use store::{Embedder, Store};

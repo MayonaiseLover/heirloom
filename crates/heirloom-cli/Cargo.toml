@@ -29,6 +29,8 @@ heirloom-sync.workspace = true
 heirloom-desktop.workspace = true
 heirloom-team.workspace = true
 heirloom-mcp = { path = "../heirloom-mcp", version = "0.1.0" }
+tempfile = "3"
+hex.workspace = true
 anyhow.workspace = true
 clap.workspace = true
 tokio = { workspace = true }

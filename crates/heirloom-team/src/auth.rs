@@ -1,29 +1,23 @@
 //! Bearer-token authentication for the team server.
 //!
-//! Tokens are URL-safe random strings. The server stores only their SHA-256
-//! hash; the plaintext is shown once at creation time and never persisted.
+//! Tokens are URL-safe random strings generated from the OS CSPRNG
+//! (`rand::rngs::OsRng`). The server stores only their SHA-256 hash;
+//! the plaintext is shown once at creation time and never persisted.
 
+use rand::RngCore;
 use sha2::{Digest, Sha256};
 
 const TOKEN_PREFIX: &str = "hlmt_";
 const TOKEN_BYTES: usize = 24;
 
+/// Generate a cryptographically secure bearer token.
+///
+/// Uses `OsRng` which on Linux reads from `getrandom(2)`, on macOS from
+/// `/dev/urandom` via `getentropy(2)`, and on Windows from `BCryptGenRandom`.
+/// All three are CSPRNGs suitable for security tokens.
 pub fn generate_token() -> String {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    // Cheap, non-cryptographically-random source plus PID for inter-process variance.
-    // This is documented in SECURITY.md — for v1.1 we'll switch to OsRng explicitly.
     let mut buf = [0u8; TOKEN_BYTES];
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_nanos())
-        .unwrap_or(0);
-    let pid = std::process::id() as u128;
-    let mix = nanos.wrapping_mul(0x9e37_79b9_7f4a_7c15).wrapping_add(pid);
-    let mut h = Sha256::new();
-    h.update(mix.to_le_bytes());
-    h.update(nanos.to_le_bytes());
-    let digest = h.finalize();
-    buf.copy_from_slice(&digest[..TOKEN_BYTES]);
+    rand::rngs::OsRng.fill_bytes(&mut buf);
     format!("{}{}", TOKEN_PREFIX, hex::encode(buf))
 }
 
@@ -40,25 +34,48 @@ pub fn looks_like_token(s: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashSet;
 
     #[test]
     fn token_has_expected_shape() {
         let t = generate_token();
         assert!(t.starts_with("hlmt_"));
         assert!(looks_like_token(&t));
+        assert_eq!(t.len(), 5 + TOKEN_BYTES * 2);
     }
 
     #[test]
-    fn two_tokens_differ() {
-        let a = generate_token();
-        std::thread::sleep(std::time::Duration::from_millis(1));
-        let b = generate_token();
-        assert_ne!(a, b);
+    fn tokens_are_unique_under_burst() {
+        // A weak time-based RNG would collide here; OsRng will not.
+        let mut seen = HashSet::new();
+        for _ in 0..1000 {
+            assert!(seen.insert(generate_token()));
+        }
     }
 
     #[test]
-    fn hash_is_stable() {
+    fn hash_is_stable_but_diverges_on_input_change() {
         assert_eq!(hash_token("hlmt_xxx"), hash_token("hlmt_xxx"));
         assert_ne!(hash_token("hlmt_a"), hash_token("hlmt_b"));
+    }
+
+    #[test]
+    fn token_has_high_entropy() {
+        // 1000 tokens × 24 bytes each = 24,000 bytes — should have all 256 byte values.
+        let mut histogram = [0u32; 256];
+        for _ in 0..1000 {
+            let t = generate_token();
+            let hex_body = &t[5..];
+            let bytes = hex::decode(hex_body).unwrap();
+            for b in bytes {
+                histogram[b as usize] += 1;
+            }
+        }
+        let covered = histogram.iter().filter(|&&c| c > 0).count();
+        assert!(
+            covered > 240,
+            "low entropy — only {} distinct byte values seen",
+            covered
+        );
     }
 }

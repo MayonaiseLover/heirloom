@@ -8,7 +8,7 @@ An ingester turns one external source into Heirloom memories. They're tiny — t
 
 ### Step 1 — Pick a target
 
-Look at the [wanted list](https://github.com/heirloom-dev/heirloom/issues?q=is%3Aissue+label%3Aingester). Comment on the issue to claim it. If you want to add something not listed, open an issue first to check fit.
+Look at the [wanted list](https://github.com/MayonaiseLover/heirloom/issues?q=is%3Aissue+label%3Aingester). Comment on the issue to claim it. If you want to add something not listed, open an issue first to check fit.
 
 ### Step 2 — Copy the template
 
@@ -69,7 +69,7 @@ Include:
 Requires Rust 1.75+.
 
 ```bash
-git clone https://github.com/heirloom-dev/heirloom
+git clone https://github.com/MayonaiseLover/heirloom
 cd heirloom
 cargo test                 # run everything
 cargo run -- init          # try the CLI
