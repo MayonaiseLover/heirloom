@@ -1,4 +1,4 @@
-# heirloom-webb.web.app — landing copy
+# heirlooom.web.app — landing copy
 
 Drop this into the static site of your choice (Astro, Next.js, Vercel template). It's the marketing-side companion to the README — same facts, more focused on the *feeling*.
 
@@ -12,7 +12,7 @@ Drop this into the static site of your choice (Astro, Next.js, Vercel template).
 A local-first memory layer for every AI tool you use. One install, then Claude, Cursor, ChatGPT, and any custom agent suddenly know what you know — without sending your life to anyone's cloud.
 
 ```bash
-curl -sSL heirloom-webb.web.app/install | sh
+curl -sSL heirlooom.web.app/install | sh
 heirloom init
 ```
 
@@ -84,6 +84,6 @@ The local single-user version stays free forever.
 
 ## Footer
 
-GitHub · Docs · Twitter · Blog · `security@heirloom-webb.web.app`
+GitHub · Docs · Twitter · Blog · `security@heirlooom.web.app`
 
 © 2026 Heirloom Contributors · [MIT License](https://github.com/MayonaiseLover/heirloom/blob/main/LICENSE)

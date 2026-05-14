@@ -61,7 +61,7 @@ The v1.0 cycle adds the **self-hostable Heirloom Teams server** and rounds out t
 
 ### Changed
 - README updated with the v1.0 comparison table including Teams + integration coverage.
-- Default domain references updated from `heirloom-webb.web.app` to `heirloom-webb.web.app` (Firebase hosting) pending registration of the `.dev` domain.
+- Default domain references updated from `heirlooom.web.app` to `heirlooom.web.app` (Firebase hosting) pending registration of the `.dev` domain.
 - Roadmap restructured to reflect what shipped (v0.1–v1.0) vs what's queued (v1.1–v2.0).
 
 ### Status of deferred items

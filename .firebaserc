@@ -1,5 +1,14 @@
 {
   "projects": {
     "default": "heirloom-webb"
+  },
+  "targets": {
+    "heirloom-webb": {
+      "hosting": {
+        "live": [
+          "heirlooom"
+        ]
+      }
+    }
   }
 }

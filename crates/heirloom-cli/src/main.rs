@@ -188,7 +188,7 @@ enum SyncAction {
     Status,
     /// Set or clear the relay URL.
     SetRelay {
-        /// Relay base URL (e.g. https://relay.heirloom-webb.web.app). Omit to clear.
+        /// Relay base URL (e.g. https://relay.heirlooom.web.app). Omit to clear.
         url: Option<String>,
     },
     /// Encrypt and upload a snapshot of the local store to the configured relay.

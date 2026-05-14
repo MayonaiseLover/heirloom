@@ -34,7 +34,7 @@ This Code of Conduct applies within all community spaces, and also applies when 
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the project maintainers at `conduct@heirloom-webb.web.app`. All complaints will be reviewed and investigated promptly and fairly.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the project maintainers at `conduct@heirlooom.web.app`. All complaints will be reviewed and investigated promptly and fairly.
 
 ## Attribution
 
