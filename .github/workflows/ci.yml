@@ -64,9 +64,12 @@ jobs:
     name: cargo-audit (advisory)
     runs-on: ubuntu-latest
     continue-on-error: true
+    env:
+      RUSTUP_TOOLCHAIN: stable
     steps:
       - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
       - name: Install cargo-audit
-        uses: rustsec/audit-check@v2.0.0
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+        run: cargo install cargo-audit --locked
+      - name: Run audit
+        run: cargo audit
