@@ -8,7 +8,7 @@
 
 A local-first, MCP-native personal memory layer for AI. One install, then every MCP-aware AI tool — Claude, Cursor, Antigravity, OpenClaw, ChatGPT, custom agents — suddenly knows you.
 
-[![CI](https://github.com/MayonaiseLover/heirloom/actions/workflows/ci.yml/badge.svg)](https://github.com/MayonaiseLover/heirloom/actions/workflows/ci.yml)
+[![CI](https://github.com/xenoaitham/heirloom/actions/workflows/ci.yml/badge.svg)](https://github.com/xenoaitham/heirloom/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![MCP](https://img.shields.io/badge/MCP-compatible-7c3aed.svg)](https://modelcontextprotocol.io)
 [![Rust](https://img.shields.io/badge/built_with-Rust-orange.svg)](https://www.rust-lang.org/)
@@ -71,7 +71,7 @@ If no pre-built release is available for your platform yet, the installer falls 
 
 ```bash
 # Requires Rust 1.83+ (https://rustup.rs)
-git clone https://github.com/MayonaiseLover/heirloom
+git clone https://github.com/xenoaitham/heirloom
 cd heirloom
 cargo install --path crates/heirloom-cli      # installs the `heirloom` binary
 cargo install --path crates/heirloom-team     # installs `heirloom-team-server` (optional)
@@ -291,7 +291,7 @@ If you find a security issue, please email `security@heirlooom.web.app` rather t
 
 ## Contributing
 
-We especially want **new ingesters**. They're the highest-leverage contribution and the design is intentionally tiny — you can ship one in an evening. Pick from the [wanted list](https://github.com/MayonaiseLover/heirloom/issues?q=is%3Aissue+label%3Aingester) or propose your own.
+We especially want **new ingesters**. They're the highest-leverage contribution and the design is intentionally tiny — you can ship one in an evening. Pick from the [wanted list](https://github.com/xenoaitham/heirloom/issues?q=is%3Aissue+label%3Aingester) or propose your own.
 
 For everything else, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
